@@ -436,6 +436,227 @@ button.muestra.activo {
 
 #pm-acciones .mini { margin-top: 0; flex: 1; }
 
+/* ============ ORDENADOR (MINIJUEGOS) ============ */
+
+#modal-fondo {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 20, 26, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9;
+}
+
+#modal-ordenador {
+  width: 560px;
+  max-width: 94%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  background: #20242e;
+  border: 3px solid #58b2a4;
+  border-radius: 14px;
+  box-shadow: 0 0 42px rgba(88, 178, 164, 0.22), 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.mo-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2b2f3a;
+  padding: 10px 14px;
+  font-weight: bold;
+  color: #58b2a4;
+  border-bottom: 2px solid #464d5e;
+}
+
+#mo-cerrar {
+  background: #3b4254;
+  border: 2px solid #565f75;
+  color: #f2efe6;
+  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#mo-contenido {
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+#mo-contenido::-webkit-scrollbar { width: 8px; }
+#mo-contenido::-webkit-scrollbar-thumb { background: #464d5e; border-radius: 4px; }
+
+.mo-intro {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #a3a8af;
+}
+
+.mo-juego-fila {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #2b303c;
+  border: 2px solid #464d5e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.mo-icono { font-size: 24px; }
+.mo-info { flex: 1; min-width: 0; }
+.mo-info .nombre { font-weight: bold; font-size: 14px; }
+.mo-juego-fila .mini { margin-top: 0; flex-shrink: 0; min-width: 68px; }
+.mo-juego-fila .mini:disabled { opacity: 0.6; cursor: default; }
+
+.mo-cabecera-juego {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.mo-cabecera-juego .detalle { flex: 1; }
+.mo-cabecera-juego .mini { margin-top: 0; }
+
+.mo-pregunta {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  margin: 18px 0 14px;
+}
+
+.mo-pregunta.chica { font-size: 18px; margin: 12px 0 8px; }
+
+#mo-input {
+  background: #171b23;
+  border: 2px solid #565f75;
+  color: #f2efe6;
+  font-size: 22px;
+  font-family: inherit;
+  padding: 8px 12px;
+  border-radius: 8px;
+  width: 130px;
+  text-align: center;
+}
+
+.mo-centrado { text-align: center; }
+
+.mo-estado {
+  font-size: 13px;
+  color: #a3a8af;
+  text-align: center;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+.mo-historial {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #cfd3da;
+  min-height: 20px;
+}
+
+.mo-grid-memoria {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mo-carta {
+  position: relative;
+  background: #2b303c;
+  border: 2px solid #565f75;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.mo-carta canvas { width: 100%; display: block; visibility: hidden; }
+.mo-carta.abierta canvas { visibility: visible; }
+
+.mo-carta .tapa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.mo-carta.abierta .tapa { display: none; }
+.mo-carta.emparejada { border-color: #7fae5c; cursor: default; }
+
+.mo-opcion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 6px 0;
+  padding: 10px 12px;
+  background: #2b303c;
+  border: 2px solid #565f75;
+  color: #f2efe6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.mo-opcion:hover { background: #374051; }
+.mo-opcion.bien { border-color: #7fae5c; background: #33502f; }
+.mo-opcion.mal { border-color: #c95349; background: #4e2b28; }
+
+.mo-barra-tiempo {
+  height: 8px;
+  background: #171b23;
+  border-radius: 4px;
+  margin: 8px 0 10px;
+  overflow: hidden;
+}
+
+.mo-barra-tiempo > div {
+  height: 100%;
+  background: #e4c25a;
+  border-radius: 4px;
+}
+
+.mo-grid-reflejos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 270px;
+  margin: 14px auto 4px;
+}
+
+.mo-celda {
+  height: 68px;
+  background: #2b303c;
+  border: 2px solid #565f75;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.mo-celda.activa {
+  background: #e4c25a;
+  border-color: #f2efe6;
+  box-shadow: 0 0 14px rgba(228, 194, 90, 0.6);
+}
+
+.mo-resultado { text-align: center; padding: 18px 0 8px; }
+
+.mo-premio {
+  font-size: 26px;
+  color: #e4c25a;
+  font-weight: bold;
+  margin: 12px 0 14px;
+}
+
 /* ============ PISTA Y AVISOS ============ */
 
 #pista-fantasma {

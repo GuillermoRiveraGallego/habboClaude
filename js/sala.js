@@ -222,18 +222,22 @@ var Sala = (function () {
     }
   }
 
-  function sentarseEn(f, tx, ty) {
-    var def = Furnis.get(f.id);
+  // Camina hasta una casilla vecina de (tx, ty) y ejecuta cb al llegar
+  function acercarseA(tx, ty, cb) {
     var bloq = rejillaBloqueo();
     var vecinos = vecinosLibres(tx, ty, bloq);
     if (!vecinos.length) { marcar(tx, ty, "rojo"); return; }
     var pa = casillaAvatar();
     vecinos.sort(function (a, b) { return distOctil(a, pa) - distOctil(b, pa); });
     for (var i = 0; i < vecinos.length; i++) {
-      var ok = iniciarCamino(vecinos[i], function () { colocarSentado(f, def, tx, ty); });
-      if (ok) { marcar(tx, ty, "amarillo"); return; }
+      if (iniciarCamino(vecinos[i], cb)) { marcar(tx, ty, "amarillo"); return; }
     }
     marcar(tx, ty, "rojo");
+  }
+
+  function sentarseEn(f, tx, ty) {
+    var def = Furnis.get(f.id);
+    acercarseA(tx, ty, function () { colocarSentado(f, def, tx, ty); });
   }
 
   function marcar(tx, ty, color) {
@@ -338,6 +342,21 @@ var Sala = (function () {
           cbs.alMascota(habs[0], puntoDe(f));
           return;
         }
+      }
+      // el ordenador de casa: acercarse y abrir los minijuegos
+      if (f.fijo && f.id === "escritorio_ordenador") {
+        var pa = avatar.sentadoEn ? avatar.casilla : casillaAvatar();
+        var pf = pieDe(f);
+        var dx = Math.max(f.x - pa.x, 0, pa.x - (f.x + pf[0] - 1));
+        var dy = Math.max(f.y - pa.y, 0, pa.y - (f.y + pf[1] - 1));
+        if (Math.max(dx, dy) <= 1 && !avatar.sentadoEn) {
+          if (cbs.alOrdenador) cbs.alOrdenador(f); // ya está al lado
+        } else {
+          acercarseA(tx, ty, function () {
+            if (cbs.alOrdenador) cbs.alOrdenador(f);
+          });
+        }
+        return;
       }
       var def = Furnis.get(f.id);
       if (def.sentable && f !== avatar.sentadoEn) sentarseEn(f, tx, ty);

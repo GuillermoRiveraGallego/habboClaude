@@ -27,7 +27,10 @@ var Juego = (function () {
             { uid: 1, id: "cama_azul", x: 1, y: 7, rot: 0 },
             { uid: 2, id: "silla_roja", x: 6, y: 3, rot: 1 },
             { uid: 3, id: "planta_helecho", x: 0, y: 0, rot: 0 },
-            { uid: 4, id: "cuadro_paisaje", pared: "x", slot: 3 }
+            { uid: 4, id: "cuadro_paisaje", pared: "x", slot: 3 },
+            // el ordenador de casa: viene con la sala y no se
+            // puede vender, guardar, mover ni rotar
+            { uid: 5, id: "escritorio_ordenador", x: 6, y: 0, rot: 0, fijo: true }
           ]
         },
         {
@@ -51,7 +54,8 @@ var Juego = (function () {
       ],
       mascotas: [],
       comida: { perro: 0, gato: 0, pez: 0, pajaro: 0 },
-      recompensas: { fuente: false, gnomo: false }
+      recompensas: { fuente: false, gnomo: false },
+      minijuegos: {}
     };
   }
 
@@ -188,6 +192,29 @@ var Juego = (function () {
     return true;
   }
 
+  // ---------------- minijuegos (ordenador de casa) ----------------
+
+  function datosMinijuego(id) {
+    if (!estado.minijuegos) estado.minijuegos = {};
+    if (!estado.minijuegos[id]) estado.minijuegos[id] = { ultimo: 0, mejor: 0, veces: 0 };
+    return estado.minijuegos[id];
+  }
+
+  // el enfriamiento arranca al empezar la partida (evita reintentos)
+  function empezarMinijuego(id) {
+    datosMinijuego(id).ultimo = Date.now();
+    cambio();
+  }
+
+  function terminarMinijuego(id, puntos, premio) {
+    var d = datosMinijuego(id);
+    d.veces++;
+    if (puntos > d.mejor) d.mejor = puntos;
+    if (premio > 0) estado.creditos += premio;
+    cambio();
+    return premio;
+  }
+
   return {
     iniciar: iniciar,
     creditos: creditos,
@@ -212,6 +239,9 @@ var Juego = (function () {
     agregarComida: agregarComida,
     consumirComida: consumirComida,
     desbloquearRecompensa: desbloquearRecompensa,
+    datosMinijuego: datosMinijuego,
+    empezarMinijuego: empezarMinijuego,
+    terminarMinijuego: terminarMinijuego,
     ponAlCambiar: function (fn) { alCambiar = fn; },
     estado: function () { return estado; }
   };

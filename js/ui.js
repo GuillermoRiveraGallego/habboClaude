@@ -542,8 +542,16 @@ var UI = (function () {
     return null;
   }
 
+  function esFijo(f) {
+    if (f && f.fijo) {
+      avisar("El ordenador vino con la casa: no se puede tocar", "error");
+      return true;
+    }
+    return false;
+  }
+
   function accionRotar(f) {
-    if (!f || f.pared) return;
+    if (!f || f.pared || esFijo(f)) return;
     var def = Furnis.get(f.id);
     var nuevo = ((f.rot || 0) + 1) % def.rotaciones;
     if (Sala.validar(f.id, f.x, f.y, nuevo, f.uid)) {
@@ -554,6 +562,7 @@ var UI = (function () {
   }
 
   function accionMover(f) {
+    if (esFijo(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     movimiento = quitarDeSala(f.uid);
     if (!movimiento) return;
@@ -576,7 +585,7 @@ var UI = (function () {
   }
 
   function accionGuardar(f) {
-    if (hogarHabitado(f)) return;
+    if (esFijo(f) || hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
     if (!inst) return;
@@ -587,7 +596,7 @@ var UI = (function () {
   }
 
   function accionVender(f) {
-    if (hogarHabitado(f)) return;
+    if (esFijo(f) || hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
     if (!inst) return;
@@ -691,11 +700,20 @@ var UI = (function () {
       alColocar: alColocar,
       alCancelarFantasma: cancelarFantasma,
       alSeleccionar: function (f, punto) {
+        if (f && f.fijo) {
+          avisar("El ordenador vino con la casa: no se puede tocar", "error");
+          ocultarMenuFurni();
+          Sala.deseleccionar();
+          return;
+        }
         if (f && punto) mostrarMenuFurni(f, punto);
         else ocultarMenuFurni();
       },
       alRotar: accionRotar,
-      alMascota: abrirPanelMascota
+      alMascota: abrirPanelMascota,
+      alOrdenador: function () {
+        if (window.Minijuegos) Minijuegos.abrir();
+      }
     });
 
     refrescarHud();

@@ -70,6 +70,7 @@
 <script src="js/mascotas.js"></script>
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/minijuegos.js"></script>
 <script>
 (function () {
   Juego.iniciar();
@@ -80,6 +81,7 @@
   Sala.iniciar(document.getElementById("lienzo"), { ancho: W, alto: H });
   Sala.cargar(Juego.salaActual());
   UI.iniciar();
+  Minijuegos.iniciar();
 
   // ---- modos de prueba para capturas: index.html?prueba=... ----
   var prueba = new URLSearchParams(location.search).get("prueba");
@@ -245,6 +247,39 @@
       "white-space:pre;z-index:20;line-height:1.5";
     div2.textContent = log2.join("\n");
     document.getElementById("zona-canvas").appendChild(div2);
+  }
+
+  // ---- pruebas del ordenador y sus minijuegos ----
+
+  if (prueba === "ordenador") {
+    Minijuegos.abrir();
+  } else if (prueba && prueba.indexOf("ordenador_") === 0 && prueba !== "ordenador_flujo") {
+    Minijuegos.abrir();
+    Minijuegos.depurar.jugar(prueba.slice("ordenador_".length));
+  } else if (prueba === "ordenador_flujo") {
+    var log3 = [];
+    function paso3(nombre, ok) { log3.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    var salon = Juego.salas()[0];
+    var pc = salon.furnis.filter(function (f) { return f.fijo; })[0];
+    paso3("hay un ordenador fijo en el salón", !!pc && pc.id === "escritorio_ordenador");
+    paso3("no se puede colocar nada encima", !Sala.validar("mesa_madera", 6, 0, 0));
+    paso3("enfriamiento inicial a 0", Minijuegos.enfriamiento("sumas") === 0);
+    Juego.empezarMinijuego("sumas");
+    paso3("enfriamiento activo al empezar", Minijuegos.enfriamiento("sumas") > 0);
+    var cA = Juego.creditos();
+    var premio = Juego.terminarMinijuego("sumas", 8, 8);
+    paso3("premio abonado (+8)", premio === 8 && Juego.creditos() === cA + 8);
+    paso3("mejor puntuación registrada", Juego.datosMinijuego("sumas").mejor === 8);
+    Juego.terminarMinijuego("sumas", 5, 5);
+    paso3("mejor puntuación se conserva", Juego.datosMinijuego("sumas").mejor === 8);
+
+    var div3 = document.createElement("div");
+    div3.style.cssText = "position:absolute;top:10px;left:10px;background:rgba(43,47,58,0.95);" +
+      "border:2px solid #565f75;border-radius:10px;padding:10px 14px;font-size:13px;" +
+      "white-space:pre;z-index:20;line-height:1.5";
+    div3.textContent = log3.join("\n");
+    document.getElementById("zona-canvas").appendChild(div3);
   }
 })();
 </script>
