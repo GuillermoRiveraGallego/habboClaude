@@ -1,0 +1,159 @@
+"use strict";
+
+// ============================================================
+// JUEGO — estado global del jugador: créditos, inventario,
+// salas y operaciones de economía. La UI orquesta; aquí vive
+// el estado y sus reglas. (El guardado llega en la fase 4:
+// `alCambiar` es el gancho de autoguardado.)
+// ============================================================
+var Juego = (function () {
+
+  var estado = null;
+  var alCambiar = null;
+
+  function nuevaPartida() {
+    return {
+      version: 1,
+      creditos: 1000,
+      sigUid: 100,
+      inventario: [],
+      salaActual: 0,
+      salas: [
+        {
+          nombre: "El Salón", ancho: 10, fondo: 10,
+          colorSuelo: "beige", colorPared: "azul_claro",
+          desbloqueada: true, precio: 0,
+          furnis: [
+            { uid: 1, id: "cama_azul", x: 1, y: 7, rot: 0 },
+            { uid: 2, id: "silla_roja", x: 6, y: 3, rot: 1 },
+            { uid: 3, id: "planta_helecho", x: 0, y: 0, rot: 0 },
+            { uid: 4, id: "cuadro_paisaje", pared: "x", slot: 3 }
+          ]
+        },
+        {
+          nombre: "El Estudio", ancho: 8, fondo: 8,
+          colorSuelo: "gris", colorPared: "crema",
+          desbloqueada: false, precio: 400,
+          furnis: []
+        },
+        {
+          nombre: "El Ático", ancho: 12, fondo: 9,
+          colorSuelo: "madera", colorPared: "morado",
+          desbloqueada: false, precio: 1200,
+          furnis: []
+        }
+      ]
+    };
+  }
+
+  function cambio() {
+    if (alCambiar) alCambiar();
+  }
+
+  function iniciar() {
+    estado = nuevaPartida();
+  }
+
+  // ---------------- consultas ----------------
+
+  function creditos() { return estado.creditos; }
+  function inventario() { return estado.inventario; }
+  function salas() { return estado.salas; }
+  function salaActual() { return estado.salas[estado.salaActual]; }
+  function indiceSala() { return estado.salaActual; }
+
+  // ---------------- economía ----------------
+
+  function gastar(n) {
+    if (estado.creditos < n) return false;
+    estado.creditos -= n;
+    cambio();
+    return true;
+  }
+
+  function ganar(n) {
+    estado.creditos += n;
+    cambio();
+  }
+
+  // Compra un furni: devuelve la instancia nueva o null si no
+  // hay créditos. (Aún sin colocar: la coloca la UI.)
+  function comprar(id) {
+    var def = Furnis.get(id);
+    if (!def || !gastar(def.precio)) return null;
+    return { uid: estado.sigUid++, id: id };
+  }
+
+  function precioVenta(id) {
+    return Math.floor(Furnis.get(id).precio / 2);
+  }
+
+  // Vende una instancia (ya retirada de sala/inventario por la UI)
+  function vender(id) {
+    var n = precioVenta(id);
+    ganar(n);
+    return n;
+  }
+
+  // ---------------- inventario ----------------
+
+  function aInventario(inst) {
+    estado.inventario.push({ uid: inst.uid, id: inst.id });
+    cambio();
+  }
+
+  function deInventario(uid) {
+    for (var i = 0; i < estado.inventario.length; i++) {
+      if (estado.inventario[i].uid === uid) {
+        return estado.inventario.splice(i, 1)[0];
+      }
+    }
+    return null;
+  }
+
+  // ---------------- salas ----------------
+
+  function cambiarSala(i) {
+    if (!estado.salas[i] || !estado.salas[i].desbloqueada) return false;
+    estado.salaActual = i;
+    cambio();
+    return true;
+  }
+
+  function desbloquearSala(i) {
+    var s = estado.salas[i];
+    if (!s || s.desbloqueada) return false;
+    if (!gastar(s.precio)) return false;
+    s.desbloqueada = true;
+    cambio();
+    return true;
+  }
+
+  function cambiarColor(tipo, color) {
+    var s = salaActual();
+    if (tipo === "suelo") s.colorSuelo = color;
+    else s.colorPared = color;
+    cambio();
+  }
+
+  return {
+    iniciar: iniciar,
+    creditos: creditos,
+    inventario: inventario,
+    salas: salas,
+    salaActual: salaActual,
+    indiceSala: indiceSala,
+    ganar: ganar,
+    gastar: gastar,
+    comprar: comprar,
+    vender: vender,
+    precioVenta: precioVenta,
+    aInventario: aInventario,
+    deInventario: deInventario,
+    cambiarSala: cambiarSala,
+    desbloquearSala: desbloquearSala,
+    cambiarColor: cambiarColor,
+    ponAlCambiar: function (fn) { alCambiar = fn; },
+    estado: function () { return estado; }
+  };
+})();

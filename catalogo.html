@@ -3,32 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Habbo Solo — Catálogo (prueba visual)</title>
+<title>Habbo Solo — Catálogo completo (prueba visual)</title>
 <link rel="stylesheet" href="css/estilo.css">
 </head>
-<body>
+<body class="prueba">
 
 <header class="cabecera">
-  <h1>Catálogo</h1>
-  <p>Página de prueba visual · <a href="index.html">volver a la sala de muestra</a></p>
+  <h1>Catálogo completo</h1>
+  <p>Página de prueba visual de todos los furnis · <a href="index.html">volver al juego</a></p>
 </header>
 
-<section class="panel">
+<section class="panel-prueba">
   <h2>Paleta cerrada (20 colores × 3 variantes: superior / lateral / frontal)</h2>
   <div id="paleta" class="paleta"></div>
 </section>
 
-<section class="panel">
-  <h2>Furnis</h2>
-  <div id="furnis" class="rejilla"></div>
-</section>
+<div id="secciones"></div>
 
 <script src="js/paleta.js"></script>
 <script src="js/iso.js"></script>
 <script src="js/furnis.js"></script>
 <script>
 (function () {
-  // --- Muestras de la paleta ---
+  // --- Paleta ---
   var contPaleta = document.getElementById("paleta");
   Paleta.nombres.forEach(function (nombre) {
     var c = Paleta.get(nombre);
@@ -43,24 +40,45 @@
     contPaleta.appendChild(div);
   });
 
-  // --- Miniaturas de furnis ---
-  var contFurnis = document.getElementById("furnis");
-  Furnis.lista().forEach(function (f) {
-    var carta = document.createElement("div");
-    carta.className = "carta";
-    var canvas = document.createElement("canvas");
-    canvas.width = 190;
-    canvas.height = 170;
-    carta.appendChild(canvas);
-    var info = document.createElement("div");
-    info.innerHTML =
-      '<div class="nombre">' + f.nombre + '</div>' +
-      '<div class="detalle">' + f.categoria + ' · ' + f.tam[0] + '×' + f.tam[1] +
-      ' · <span class="precio">' + f.precio + ' créditos</span></div>';
-    carta.appendChild(info);
-    contFurnis.appendChild(carta);
-    Furnis.miniatura(canvas, f.id);
+  // --- Furnis por categoría ---
+  var cont = document.getElementById("secciones");
+  var total = 0;
+  Furnis.categorias().forEach(function (cat) {
+    var furnis = Furnis.lista().filter(function (f) { return f.categoria === cat[0]; });
+    if (!furnis.length) return;
+    var seccion = document.createElement("section");
+    seccion.className = "panel-prueba";
+    var h = document.createElement("h2");
+    h.textContent = cat[1] + " (" + furnis.length + ")";
+    seccion.appendChild(h);
+    var rejilla = document.createElement("div");
+    rejilla.className = "rejilla";
+    furnis.forEach(function (f) {
+      total++;
+      var carta = document.createElement("div");
+      carta.className = "carta";
+      var canvas = document.createElement("canvas");
+      canvas.width = 180;
+      canvas.height = 160;
+      carta.appendChild(canvas);
+      var info = document.createElement("div");
+      info.innerHTML =
+        '<div class="nombre">' + f.nombre + '</div>' +
+        '<div class="detalle">' + f.tam[0] + '×' + f.tam[1] +
+        (f.rotaciones > 1 ? ' · ' + f.rotaciones + ' giros' : '') +
+        (f.sentable ? ' · ' + f.sentable : '') +
+        (f.raro ? ' · <span class="precio">RARO</span>' : '') +
+        ' · <span class="precio">' + f.precio + ' cr</span></div>';
+      carta.appendChild(info);
+      rejilla.appendChild(carta);
+      Furnis.miniatura(canvas, f.id);
+    });
+    seccion.appendChild(rejilla);
+    cont.appendChild(seccion);
   });
+
+  document.querySelector(".cabecera p").innerHTML =
+    total + " furnis en total · <a href='index.html'>volver al juego</a>";
 })();
 </script>
 </body>

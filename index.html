@@ -3,72 +3,140 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Habbo Solo — Fase 1: sala de muestra</title>
+<title>Habbo Solo</title>
 <link rel="stylesheet" href="css/estilo.css">
 </head>
-<body>
+<body class="juego">
 
-<header class="cabecera">
-  <h1>Habbo Solo</h1>
-  <p>Fase 1 — sala de muestra con 5 furnis · <a href="catalogo.html">ver página de catálogo</a></p>
-</header>
+<div id="app">
+  <div id="zona-canvas">
+    <canvas id="lienzo"></canvas>
 
-<canvas id="lienzo" class="lienzo-demo"></canvas>
+    <div id="menu-furni" class="oculto">
+      <button id="btn-rotar">⟳ Rotar</button>
+      <button id="btn-mover">✥ Mover</button>
+      <button id="btn-guardar">📦 Guardar</button>
+      <button id="btn-vender">💰</button>
+    </div>
+
+    <div id="pista-fantasma" class="oculto">
+      Click: colocar · <b>R</b>: rotar · <b>Esc</b> o click derecho: cancelar
+    </div>
+
+    <div id="avisos"></div>
+  </div>
+
+  <div id="hud">
+    <div id="hud-marca">Habbo Solo</div>
+    <div id="hud-cartera">💰 <span id="hud-creditos">0</span></div>
+    <div id="hud-sala-caja">🏠 <span id="hud-sala"></span></div>
+    <div id="hud-botones">
+      <button id="btn-modo">🎨 Decorar</button>
+      <button data-panel="catalogo">🛒 Catálogo</button>
+      <button data-panel="inventario">📦 Inventario</button>
+      <button data-panel="salas">🚪 Salas</button>
+    </div>
+  </div>
+
+  <aside id="panel" class="oculto">
+    <header>
+      <h2 id="panel-titulo"></h2>
+      <button id="panel-cerrar">✕</button>
+    </header>
+    <nav id="panel-pestanas"></nav>
+    <div id="panel-contenido"></div>
+  </aside>
+</div>
 
 <script src="js/paleta.js"></script>
 <script src="js/iso.js"></script>
 <script src="js/furnis.js"></script>
+<script src="js/avatar.js"></script>
+<script src="js/juego.js"></script>
+<script src="js/sala.js"></script>
+<script src="js/ui.js"></script>
 <script>
 (function () {
-  var W = 980, H = 620;
-  var canvas = document.getElementById("lienzo");
-  var dpr = window.devicePixelRatio || 1;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = W + "px";
-  canvas.style.height = H + "px";
-  var ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
+  Juego.iniciar();
 
-  var N = 8;              // sala 8×8
-  var GROSOR = 0.18;      // grosor de pared
-  var ALTO_PARED = 2.4;
+  var zona = document.getElementById("zona-canvas");
+  var W = Math.max(720, Math.min(zona.clientWidth - 8, 1400));
+  var H = Math.max(480, Math.min(zona.clientHeight - 8, 900));
+  Sala.iniciar(document.getElementById("lienzo"), { ancho: W, alto: H });
+  Sala.cargar(Juego.salaActual());
+  UI.iniciar();
 
-  ctx.save();
-  ctx.translate(W / 2, 205);
-  ctx.scale(1.25, 1.25);
+  // ---- modos de prueba para capturas: index.html?prueba=... ----
+  var prueba = new URLSearchParams(location.search).get("prueba");
+  if (prueba) document.getElementById("panel").style.transition = "none";
+  if (prueba === "catalogo") {
+    UI.abrirPanel("catalogo");
+  } else if (prueba === "inventario") {
+    Juego.aInventario({ uid: 90, id: "sofa_rojo" });
+    Juego.aInventario({ uid: 91, id: "ficus" });
+    UI.abrirPanel("inventario");
+  } else if (prueba === "salas") {
+    UI.abrirPanel("salas");
+  } else if (prueba === "fantasma") {
+    UI.abrirPanel("catalogo");
+    UI.empezarColocacion("sofa_rojo", "catalogo");
+    Sala.depurar.hover(4, 5);
+  } else if (prueba === "fantasma_mal") {
+    UI.abrirPanel("catalogo");
+    UI.empezarColocacion("sofa_rojo", "catalogo");
+    Sala.depurar.hover(1, 7); // encima de la cama: inválido
+  } else if (prueba === "fantasma_pared") {
+    UI.abrirPanel("catalogo");
+    UI.empezarColocacion("cuadro_abstracto", "catalogo");
+    Sala.depurar.hoverPared("y", 4);
+  } else if (prueba === "seleccion") {
+    UI.ponerModo("decorar");
+    Sala.depurar.seleccionar(1); // la cama inicial
+  } else if (prueba === "flujo") {
+    // prueba automatizada del flujo de decoración y economía
+    var log = [];
+    function paso(nombre, ok) { log.push((ok ? "OK " : "FALLO ") + nombre); }
 
-  // Paredes (la propia primitiva cubo les da el sombreado correcto)
-  Iso.cubo(ctx, -GROSOR, -GROSOR, 0, GROSOR, N + GROSOR, ALTO_PARED, "azul_claro");
-  Iso.cubo(ctx, 0, -GROSOR, 0, N, GROSOR, ALTO_PARED, "azul_claro");
+    var c0 = Juego.creditos();
+    var inst = Juego.comprar("sofa_azul");
+    paso("comprar sofá (-220)", !!inst && Juego.creditos() === c0 - 220);
+    Juego.salaActual().furnis.push({ uid: inst.uid, id: inst.id, x: 7, y: 2, rot: 1 });
 
-  // Losa del suelo con grosor + baldosas en damero
-  Iso.cubo(ctx, 0, 0, -0.22, N, N, 0.22, "beige");
-  for (var gy = 0; gy < N; gy++) {
-    for (var gx = 0; gx < N; gx++) {
-      Iso.plano(ctx, gx, gy, 0, 1, 1, ((gx + gy) % 2) ? "crema" : "beige");
-    }
+    paso("validar casilla libre", Sala.validar("mesa_madera", 4, 4, 0));
+    paso("validar sobre cama = no", !Sala.validar("mesa_madera", 1, 7, 0));
+    paso("validar sobre sofá nuevo = no", !Sala.validar("mesa_madera", 7, 2, 0));
+    paso("validar fuera de sala = no", !Sala.validar("mesa_comedor", 9, 9, 0));
+    paso("pared libre", Sala.validarPared("cuadro_abstracto", "x", 6));
+    paso("pared ocupada = no", !Sala.validarPared("cuadro_abstracto", "x", 3));
+
+    var c1 = Juego.creditos();
+    var n = Juego.vender("planta_helecho");
+    paso("vender planta +17", n === 17 && Juego.creditos() === c1 + 17);
+    var fs = Juego.salaActual().furnis;
+    fs.splice(fs.findIndex(function (f) { return f.uid === 3; }), 1);
+
+    Juego.aInventario({ uid: 50, id: "ficus" });
+    paso("inventario 1 objeto", Juego.inventario().length === 1);
+
+    var c2 = Juego.creditos();
+    var pudoAtico = Juego.desbloquearSala(2);
+    paso("desbloquear ático coherente con créditos", pudoAtico === (c2 >= 1200));
+    var c3 = Juego.creditos();
+    paso("desbloquear estudio (-400)", Juego.desbloquearSala(1) && Juego.creditos() === c3 - 400);
+    paso("cambiar a estudio", Juego.cambiarSala(1));
+    Sala.cargar(Juego.salaActual());
+    Juego.cambiarColor("suelo", "verde");
+    Juego.cambiarColor("pared", "rosa");
+    paso("colores cambiados", Juego.salaActual().colorSuelo === "verde" &&
+      Juego.salaActual().colorPared === "rosa");
+
+    var div = document.createElement("div");
+    div.style.cssText = "position:absolute;top:10px;left:10px;background:rgba(43,47,58,0.95);" +
+      "border:2px solid #565f75;border-radius:10px;padding:10px 14px;font-size:13px;" +
+      "white-space:pre;z-index:20;line-height:1.5";
+    div.textContent = log.join("\n");
+    document.getElementById("zona-canvas").appendChild(div);
   }
-
-  // Los 5 furnis de muestra
-  var piezas = [
-    { id: "silla_roja",      x: 2, y: 2 },
-    { id: "mesa_madera",     x: 3, y: 2 },
-    { id: "planta_helecho",  x: 6, y: 1 },
-    { id: "cama_azul",       x: 1, y: 5 },
-    { id: "sofa_azul",       x: 4, y: 6 }
-  ];
-
-  // Orden de pintado: de atrás hacia delante
-  piezas.sort(function (a, b) { return (a.x + a.y) - (b.x + b.y); });
-
-  piezas.forEach(function (p) {
-    var f = Furnis.get(p.id);
-    Iso.sombra(ctx, p.x, p.y, f.tam[0], f.tam[1]);
-    f.dibujar(ctx, p.x, p.y, 0);
-  });
-
-  ctx.restore();
 })();
 </script>
 </body>

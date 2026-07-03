@@ -108,12 +108,71 @@ var Iso = (function () {
     ], "rgba(40, 36, 32, 0.16)", true);
   }
 
+  // ------------------------------------------------------------
+  // Orden de pintado (pintor). Recibe cajas {x0,y0,z0,x1,y1,z1}
+  // y devuelve el orden correcto de atrás hacia delante usando
+  // separación por ejes + orden topológico. Sirve tanto para las
+  // piezas de un furni como para los furnis y el avatar de una
+  // sala completa.
+  // ------------------------------------------------------------
+  function ordenarCajas(cajas) {
+    var n = cajas.length;
+    if (n < 2) return cajas.slice();
+    var E = 0.001;
+
+    // a está detrás de b si queda separado hacia atrás en algún eje
+    function detras(a, b) {
+      return a.x1 <= b.x0 + E || a.y1 <= b.y0 + E || a.z1 <= b.z0 + E;
+    }
+
+    // ¿se solapan sus proyecciones en pantalla? (si no, el orden da igual)
+    function solapan(a, b) {
+      if ((a.x1 - a.y0) <= (b.x0 - b.y1) || (b.x1 - b.y0) <= (a.x0 - a.y1)) return false;
+      var aTop = (a.x0 + a.y0) * MY - a.z1 * MZ, aBot = (a.x1 + a.y1) * MY - a.z0 * MZ;
+      var bTop = (b.x0 + b.y0) * MY - b.z1 * MZ, bBot = (b.x1 + b.y1) * MY - b.z0 * MZ;
+      return aBot > bTop && bBot > aTop;
+    }
+
+    var sig = [], grado = [], i, j;
+    for (i = 0; i < n; i++) { sig.push([]); grado.push(0); }
+    for (i = 0; i < n; i++) {
+      for (j = i + 1; j < n; j++) {
+        var a = cajas[i], b = cajas[j];
+        if (!solapan(a, b)) continue;
+        var ab = detras(a, b), ba = detras(b, a);
+        if (ab && !ba) { sig[i].push(j); grado[j]++; }
+        else if (ba && !ab) { sig[j].push(i); grado[i]++; }
+        // piezas interpenetradas o ambiguas: sin restricción
+      }
+    }
+
+    var usado = [], orden = [];
+    for (i = 0; i < n; i++) usado.push(false);
+    for (var k = 0; k < n; k++) {
+      var elegido = -1, mejorClave = Infinity, hayCero = false;
+      for (i = 0; i < n; i++) {
+        if (usado[i]) continue;
+        var clave = cajas[i].x1 + cajas[i].y1;
+        if (grado[i] === 0) {
+          if (!hayCero || clave < mejorClave) { hayCero = true; elegido = i; mejorClave = clave; }
+        } else if (!hayCero && (elegido < 0 || clave < mejorClave)) {
+          elegido = i; mejorClave = clave;
+        }
+      }
+      usado[elegido] = true;
+      orden.push(cajas[elegido]);
+      for (i = 0; i < sig[elegido].length; i++) grado[sig[elegido][i]]--;
+    }
+    return orden;
+  }
+
   return {
     MX: MX, MY: MY, MZ: MZ,
     proyectar: proyectar,
     cubo: cubo,
     plano: plano,
     cilindro: cilindro,
-    sombra: sombra
+    sombra: sombra,
+    ordenarCajas: ordenarCajas
   };
 })();
