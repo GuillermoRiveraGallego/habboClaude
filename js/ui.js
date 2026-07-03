@@ -55,7 +55,9 @@ var UI = (function () {
   // ---------------- panel lateral ----------------
 
   function abrirPanel(nombre, sub) {
-    if (nombre !== "salas" && nombre !== "mascotas") ponerModoSinCerrar("decorar");
+    if (nombre !== "salas" && nombre !== "mascotas" && nombre !== "avatar") {
+      ponerModoSinCerrar("decorar");
+    }
     panelAbierto = nombre;
     if (sub) pestanaMascotas = sub;
     elPanel.classList.remove("oculto");
@@ -65,6 +67,7 @@ var UI = (function () {
     if (nombre === "catalogo") pintarCatalogo();
     else if (nombre === "inventario") pintarInventario();
     else if (nombre === "mascotas") pintarMascotas();
+    else if (nombre === "avatar") pintarAvatar();
     else pintarSalas();
   }
 
@@ -236,6 +239,90 @@ var UI = (function () {
       elPanelContenido.appendChild(filaColores("Suelo", COLORES_SUELO, "suelo"));
       elPanelContenido.appendChild(filaColores("Paredes", COLORES_PARED, "pared"));
     }
+  }
+
+  // ---------------- panel del avatar ----------------
+
+  var previewDir = 1;
+
+  var COLORES_PELO = ["negro", "madera_oscura", "madera", "amarillo", "naranja", "gris", "rojo", "morado"];
+  var COLORES_PIEL = ["piel", "crema", "beige", "madera", "marron"];
+  var COLORES_CAMISETA = ["turquesa", "rojo", "azul", "verde", "amarillo", "naranja", "morado", "rosa", "blanco", "gris", "negro"];
+  var COLORES_PANTALON = ["gris_oscuro", "azul", "negro", "marron", "verde_oscuro", "beige", "blanco"];
+  var COLORES_ZAPATOS = ["negro", "blanco", "marron", "rojo", "gris_oscuro", "azul"];
+
+  function pintarAvatar() {
+    elPanelTitulo.textContent = "👤 Tu avatar";
+    elPanelPestanas.innerHTML = "";
+    elPanelContenido.innerHTML = "";
+
+    // vista previa
+    var prev = document.createElement("div");
+    prev.className = "avatar-preview";
+    var cv = document.createElement("canvas");
+    cv.width = 170;
+    cv.height = 190;
+    prev.appendChild(cv);
+    var bGirar = document.createElement("button");
+    bGirar.className = "mini";
+    bGirar.textContent = "↻ Girar";
+    bGirar.addEventListener("click", function () {
+      previewDir = (previewDir + 1) % 4;
+      Avatar.miniatura(cv, previewDir);
+    });
+    prev.appendChild(bGirar);
+    elPanelContenido.appendChild(prev);
+
+    // peinados
+    var h = document.createElement("h3");
+    h.textContent = "Peinado";
+    h.style.marginTop = "4px";
+    elPanelContenido.appendChild(h);
+    var chips = document.createElement("div");
+    chips.className = "fila-chips";
+    Avatar.PEINADOS.forEach(function (p) {
+      var b = document.createElement("button");
+      b.className = "mini" + (Juego.aspecto().peinado === p[0] ? " activo" : "");
+      b.textContent = p[1];
+      b.addEventListener("click", function () {
+        Juego.cambiarAspecto("peinado", p[0]);
+        pintarAvatar();
+      });
+      chips.appendChild(b);
+    });
+    elPanelContenido.appendChild(chips);
+
+    // colores
+    elPanelContenido.appendChild(filaAspecto("Pelo", "pelo", COLORES_PELO, cv));
+    elPanelContenido.appendChild(filaAspecto("Piel", "piel", COLORES_PIEL, cv));
+    elPanelContenido.appendChild(filaAspecto("Camiseta", "camiseta", COLORES_CAMISETA, cv));
+    elPanelContenido.appendChild(filaAspecto("Pantalón", "pantalon", COLORES_PANTALON, cv));
+    elPanelContenido.appendChild(filaAspecto("Zapatos", "zapatos", COLORES_ZAPATOS, cv));
+
+    Avatar.miniatura(cv, previewDir);
+  }
+
+  function filaAspecto(etiqueta, clave, colores, cv) {
+    var fila = document.createElement("div");
+    fila.className = "fila-colores";
+    var lab = document.createElement("span");
+    lab.textContent = etiqueta;
+    fila.appendChild(lab);
+    colores.forEach(function (nombre) {
+      var b = document.createElement("button");
+      b.className = "muestra";
+      b.style.background = Paleta.get(nombre).base;
+      b.title = nombre;
+      if (Juego.aspecto()[clave] === nombre) b.classList.add("activo");
+      b.addEventListener("click", function () {
+        Juego.cambiarAspecto(clave, nombre);
+        fila.querySelectorAll(".muestra").forEach(function (m) { m.classList.remove("activo"); });
+        b.classList.add("activo");
+        Avatar.miniatura(cv, previewDir);
+      });
+      fila.appendChild(b);
+    });
+    return fila;
   }
 
   // ---------------- panel de mascotas ----------------

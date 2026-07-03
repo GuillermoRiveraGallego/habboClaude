@@ -311,6 +311,36 @@ button.muestra.activo {
 
 #menu-furni button:hover { background: #46506a; }
 
+/* ============ AVATAR ============ */
+
+.avatar-preview {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.avatar-preview canvas {
+  background: linear-gradient(#3b4254, #333949);
+  border: 2px solid #464d5e;
+  border-radius: 10px;
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.fila-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.fila-chips .mini { margin-top: 0; }
+
+button.mini.activo {
+  background: #e4c25a;
+  border-color: #b8963a;
+  color: #343740;
+}
+
 /* ============ MASCOTAS ============ */
 
 .fila-barra {

@@ -49,6 +49,7 @@
       <button data-panel="inventario">📦 Inventario</button>
       <button data-panel="salas">🚪 Salas</button>
       <button data-panel="mascotas">🐾 Mascotas</button>
+      <button data-panel="avatar">👤 Avatar</button>
     </div>
   </div>
 
@@ -74,6 +75,7 @@
 <script>
 (function () {
   Juego.iniciar();
+  Avatar.ponAspecto(Juego.aspecto()); // el aspecto vive en el estado del juego
 
   var zona = document.getElementById("zona-canvas");
   var W = Math.max(720, Math.min(zona.clientWidth - 8, 1400));
@@ -280,6 +282,44 @@
       "white-space:pre;z-index:20;line-height:1.5";
     div3.textContent = log3.join("\n");
     document.getElementById("zona-canvas").appendChild(div3);
+  }
+
+  // ---- pruebas de la personalización del avatar ----
+
+  function aplicarLook(look) {
+    Object.keys(look).forEach(function (k) { Juego.cambiarAspecto(k, look[k]); });
+  }
+
+  if (prueba === "avatar") {
+    UI.abrirPanel("avatar");
+  } else if (prueba === "avatar_look") {
+    aplicarLook({ peinado: "melena", pelo: "amarillo", piel: "marron",
+                  camiseta: "rojo", pantalon: "beige", zapatos: "blanco" });
+    UI.abrirPanel("avatar");
+    Sala.depurar.avatar({ x: 4.5, y: 4.5, dir: 1, pose: "parado" });
+  } else if (prueba === "avatar_look2") {
+    aplicarLook({ peinado: "tupe", pelo: "negro", piel: "crema",
+                  camiseta: "morado", pantalon: "negro", zapatos: "rojo" });
+    Sala.depurar.sentar(2); // sentado en la silla con el nuevo aspecto
+  } else if (prueba === "avatar_flujo") {
+    var log4 = [];
+    function paso4(nombre, ok) { log4.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    paso4("aspecto inicial camiseta turquesa", Juego.aspecto().camiseta === "turquesa");
+    Juego.cambiarAspecto("camiseta", "rojo");
+    paso4("cambio de camiseta aplicado", Juego.aspecto().camiseta === "rojo");
+    paso4("el cambio queda en el estado (guardable)", Juego.estado().avatar.camiseta === "rojo");
+    Juego.cambiarAspecto("peinado", "melena");
+    paso4("cambio de peinado aplicado", Juego.aspecto().peinado === "melena");
+    var esMismo = (Juego.aspecto() === Juego.estado().avatar);
+    paso4("Avatar dibuja desde el mismo objeto", esMismo);
+
+    var div4 = document.createElement("div");
+    div4.style.cssText = "position:absolute;top:10px;left:10px;background:rgba(43,47,58,0.95);" +
+      "border:2px solid #565f75;border-radius:10px;padding:10px 14px;font-size:13px;" +
+      "white-space:pre;z-index:20;line-height:1.5";
+    div4.textContent = log4.join("\n");
+    document.getElementById("zona-canvas").appendChild(div4);
   }
 })();
 </script>

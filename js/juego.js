@@ -55,7 +55,15 @@ var Juego = (function () {
       mascotas: [],
       comida: { perro: 0, gato: 0, pez: 0, pajaro: 0 },
       recompensas: { fuente: false, gnomo: false },
-      minijuegos: {}
+      minijuegos: {},
+      avatar: {
+        peinado: "clasico",
+        pelo: "madera_oscura",
+        piel: "piel",
+        camiseta: "turquesa",
+        pantalon: "gris_oscuro",
+        zapatos: "negro"
+      }
     };
   }
 
@@ -192,6 +200,15 @@ var Juego = (function () {
     return true;
   }
 
+  // ---------------- aspecto del avatar ----------------
+
+  function aspecto() { return estado.avatar; }
+
+  function cambiarAspecto(clave, valor) {
+    estado.avatar[clave] = valor;
+    cambio();
+  }
+
   // ---------------- minijuegos (ordenador de casa) ----------------
 
   function datosMinijuego(id) {
@@ -239,6 +256,8 @@ var Juego = (function () {
     agregarComida: agregarComida,
     consumirComida: consumirComida,
     desbloquearRecompensa: desbloquearRecompensa,
+    aspecto: aspecto,
+    cambiarAspecto: cambiarAspecto,
     datosMinijuego: datosMinijuego,
     empezarMinijuego: empezarMinijuego,
     terminarMinijuego: terminarMinijuego,
