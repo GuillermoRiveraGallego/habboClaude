@@ -9,7 +9,7 @@
 var Juego = (function () {
 
   var estado = null;
-  var alCambiar = null;
+  var oyentes = [];
 
   function nuevaPartida() {
     return {
@@ -68,11 +68,40 @@ var Juego = (function () {
   }
 
   function cambio() {
-    if (alCambiar) alCambiar();
+    for (var i = 0; i < oyentes.length; i++) oyentes[i]();
   }
 
-  function iniciar() {
-    estado = nuevaPartida();
+  // Rellena lo que le falte a una partida guardada antigua para
+  // que sea compatible con la versión actual del juego.
+  function migrar(datos) {
+    var base = nuevaPartida();
+    Object.keys(base).forEach(function (k) {
+      if (datos[k] === undefined) datos[k] = base[k];
+    });
+    ["comida", "recompensas", "avatar"].forEach(function (k) {
+      Object.keys(base[k]).forEach(function (k2) {
+        if (datos[k][k2] === undefined) datos[k][k2] = base[k][k2];
+      });
+    });
+    // el ordenador fijo del salón debe existir siempre
+    var salon = datos.salas[0];
+    if (salon && !salon.furnis.some(function (f) { return f.fijo; })) {
+      salon.furnis.push(base.salas[0].furnis.filter(function (f) { return f.fijo; })[0]);
+    }
+    // el jardín debe existir
+    if (!datos.salas.some(function (s) { return s.tipo === "jardin"; })) {
+      datos.salas.push(base.salas[3]);
+    }
+    // la sala actual debe ser válida y estar desbloqueada
+    if (!datos.salas[datos.salaActual] || !datos.salas[datos.salaActual].desbloqueada) {
+      datos.salaActual = 0;
+    }
+    return datos;
+  }
+
+  // Arranca con una partida guardada (migrándola) o una nueva
+  function iniciar(datosGuardados) {
+    estado = datosGuardados ? migrar(datosGuardados) : nuevaPartida();
   }
 
   // ---------------- consultas ----------------
@@ -261,7 +290,7 @@ var Juego = (function () {
     datosMinijuego: datosMinijuego,
     empezarMinijuego: empezarMinijuego,
     terminarMinijuego: terminarMinijuego,
-    ponAlCambiar: function (fn) { alCambiar = fn; },
+    ponAlCambiar: function (fn) { oyentes.push(fn); },
     estado: function () { return estado; }
   };
 })();

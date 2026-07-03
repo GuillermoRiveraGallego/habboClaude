@@ -239,6 +239,23 @@ var UI = (function () {
       elPanelContenido.appendChild(filaColores("Suelo", COLORES_SUELO, "suelo"));
       elPanelContenido.appendChild(filaColores("Paredes", COLORES_PARED, "pared"));
     }
+
+    // reiniciar la partida (borra el guardado)
+    var hReset = document.createElement("h3");
+    hReset.textContent = "Zona de peligro";
+    elPanelContenido.appendChild(hReset);
+    var bReset = document.createElement("button");
+    bReset.className = "mini";
+    bReset.id = "btn-reiniciar";
+    bReset.textContent = "🗑 Reiniciar partida (borra todo)";
+    bReset.addEventListener("click", function () {
+      if (window.confirm("¿Seguro que quieres reiniciar la partida?\n" +
+          "Se borrarán salas, furnis, mascotas, créditos y avatar.")) {
+        if (window.Guardado) Guardado.reiniciar();
+        location.reload();
+      }
+    });
+    elPanelContenido.appendChild(bReset);
   }
 
   // ---------------- panel del avatar ----------------

@@ -253,6 +253,13 @@ button.mini.dorado {
 .sala-item.actual { border-color: #e4c25a; }
 .sala-item .nombre { font-weight: bold; }
 
+#btn-reiniciar {
+  border-color: #c95349;
+  color: #f0a49c;
+}
+
+#btn-reiniciar:hover { background: #4e2b28; }
+
 #panel-contenido h3 {
   font-size: 14px;
   color: #e4c25a;

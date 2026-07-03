@@ -72,9 +72,16 @@
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/minijuegos.js"></script>
+<script src="js/guardado.js"></script>
 <script>
 (function () {
-  Juego.iniciar();
+  var prueba = new URLSearchParams(location.search).get("prueba");
+
+  // En modo prueba se juega con partida limpia y SIN guardar,
+  // para no tocar la partida real (salvo los modos e2e del
+  // propio guardado).
+  var guardada = (!prueba || prueba === "e2e2") ? Guardado.cargar() : null;
+  Juego.iniciar(guardada);
   Avatar.ponAspecto(Juego.aspecto()); // el aspecto vive en el estado del juego
 
   var zona = document.getElementById("zona-canvas");
@@ -85,8 +92,15 @@
   UI.iniciar();
   Minijuegos.iniciar();
 
+  if (!prueba) {
+    Guardado.iniciar({
+      alError: function () { UI.avisar("No se pudo guardar la partida", "error"); }
+    });
+    Guardado.guardar(); // primera foto de la partida
+    if (guardada) UI.avisar("Partida cargada — bienvenido de nuevo", "ok");
+  }
+
   // ---- modos de prueba para capturas: index.html?prueba=... ----
-  var prueba = new URLSearchParams(location.search).get("prueba");
   if (prueba) document.getElementById("panel").style.transition = "none";
   if (prueba === "catalogo") {
     UI.abrirPanel("catalogo");
@@ -320,6 +334,72 @@
       "white-space:pre;z-index:20;line-height:1.5";
     div4.textContent = log4.join("\n");
     document.getElementById("zona-canvas").appendChild(div4);
+  }
+
+  // ---- pruebas del guardado ----
+
+  function cajaTexto(texto) {
+    var div = document.createElement("div");
+    div.style.cssText = "position:absolute;top:10px;left:10px;background:rgba(43,47,58,0.95);" +
+      "border:2px solid #565f75;border-radius:10px;padding:10px 14px;font-size:13px;" +
+      "white-space:pre;z-index:20;line-height:1.5";
+    div.textContent = texto;
+    document.getElementById("zona-canvas").appendChild(div);
+  }
+
+  if (prueba === "guardado_flujo") {
+    // respalda la partida real para no pisarla con la de prueba
+    var respaldo = localStorage.getItem(Guardado.CLAVE);
+    var log5 = [];
+    function paso5(nombre, ok) { log5.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    Juego.cambiarAspecto("camiseta", "rojo");
+    Juego.ganar(123);
+    var cG = Juego.creditos();
+    paso5("guardar", Guardado.guardar());
+    var datos = Guardado.cargar();
+    paso5("cargar devuelve datos", !!datos);
+    paso5("créditos persistidos", datos && datos.creditos === cG);
+    paso5("aspecto persistido", datos && datos.avatar.camiseta === "rojo");
+    paso5("las 4 salas persistidas", datos && datos.salas.length === 4);
+
+    // migración: partida "antigua" sin comida y sin ordenador fijo
+    delete datos.comida;
+    datos.salas[0].furnis = datos.salas[0].furnis.filter(function (f) { return !f.fijo; });
+    localStorage.setItem(Guardado.CLAVE, JSON.stringify(datos));
+    Juego.iniciar(Guardado.cargar());
+    paso5("migración restaura la despensa", !!Juego.comida() && Juego.comida().perro === 0);
+    paso5("migración restaura el ordenador fijo",
+      Juego.salas()[0].furnis.some(function (f) { return f.fijo; }));
+
+    // una versión desconocida se descarta
+    localStorage.setItem(Guardado.CLAVE, JSON.stringify({ version: 99 }));
+    paso5("versión desconocida se descarta", Guardado.cargar() === null);
+    // una partida corrupta se descarta
+    localStorage.setItem(Guardado.CLAVE, "{esto no es json");
+    paso5("partida corrupta se descarta", Guardado.cargar() === null);
+
+    // restaurar la partida real
+    if (respaldo === null) localStorage.removeItem(Guardado.CLAVE);
+    else localStorage.setItem(Guardado.CLAVE, respaldo);
+    Sala.cargar(Juego.salaActual());
+    cajaTexto(log5.join("\n"));
+  } else if (prueba === "e2e1") {
+    // primera mitad de la prueba con recarga real (perfil compartido)
+    Juego.ganar(777);
+    Juego.desbloquearSala(1);
+    Juego.cambiarAspecto("camiseta", "rojo");
+    var okE2e = Guardado.guardar();
+    cajaTexto("e2e1 · guardado: " + (okE2e ? "OK" : "FALLO") +
+      "\ncréditos: " + Juego.creditos() +
+      "\ncamiseta: " + Juego.aspecto().camiseta +
+      "\nestudio desbloqueado: " + (Juego.salas()[1].desbloqueada ? "SÍ" : "NO"));
+  } else if (prueba === "e2e2") {
+    // segunda mitad: debería mostrar lo guardado en e2e1
+    cajaTexto("e2e2 · partida cargada" +
+      "\ncréditos: " + Juego.creditos() +
+      "\ncamiseta: " + Juego.aspecto().camiseta +
+      "\nestudio desbloqueado: " + (Juego.salas()[1].desbloqueada ? "SÍ" : "NO"));
   }
 })();
 </script>
