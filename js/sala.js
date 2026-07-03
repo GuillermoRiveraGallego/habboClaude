@@ -523,10 +523,20 @@ var Sala = (function () {
 
     // furnis de suelo + avatar con orden de pintado global
     var cajas = [];
+    var halos = [];
+    var lucesOn = window.Ambiente && Ambiente.lucesEncendidas();
     sala.furnis.forEach(function (f) {
       if (esPared(f) || Furnis.get(f.id).capa === "alfombra") return;
       var def = Furnis.get(f.id);
       var p = pieDe(f);
+      // fuentes de luz encendidas (noche y atardecer)
+      if (lucesOn && def.luz) {
+        var pl = Furnis.puntoRotado(f.id, f.rot || 0, def.luz.x, def.luz.y);
+        halos.push({
+          x: f.x + pl.x, y: f.y + pl.y, z: def.luz.z,
+          radio: def.luz.radio, color: def.luz.color
+        });
+      }
       var sentadoAqui = (avatar.sentadoEn === f);
       var caja = {
         x0: f.x, y0: f.y, z0: 0,
@@ -567,6 +577,26 @@ var Sala = (function () {
     }
     var ordenadas = Iso.ordenarCajas(cajas);
     for (var j = 0; j < ordenadas.length; j++) ordenadas[j].dibuja();
+
+    // halos de luz (lámparas, pantallas y fuego)
+    if (halos.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (var hI = 0; hI < halos.length; hI++) {
+        var h = halos[hI];
+        var ph = Iso.proyectar(h.x, h.y, h.z);
+        var grad = ctx.createRadialGradient(ph.x, ph.y, 2, ph.x, ph.y, h.radio);
+        var cRGB = h.color[0] + "," + h.color[1] + "," + h.color[2];
+        grad.addColorStop(0, "rgba(" + cRGB + ",0.5)");
+        grad.addColorStop(0.45, "rgba(" + cRGB + ",0.18)");
+        grad.addColorStop(1, "rgba(" + cRGB + ",0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(ph.x, ph.y, h.radio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
     // selección (modo decorar)
     if (seleccion && modoActual === "decorar") {

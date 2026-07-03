@@ -56,6 +56,7 @@ var Juego = (function () {
       comida: { perro: 0, gato: 0, pez: 0, pajaro: 0 },
       recompensas: { fuente: false, gnomo: false },
       minijuegos: {},
+      ambiente: "auto",
       avatar: {
         peinado: "clasico",
         pelo: "madera_oscura",
@@ -238,6 +239,15 @@ var Juego = (function () {
     cambio();
   }
 
+  // ---------------- ambiente (ciclo día/noche) ----------------
+
+  function ambiente() { return estado.ambiente; }
+
+  function cambiarAmbiente(valor) {
+    estado.ambiente = valor;
+    cambio();
+  }
+
   // ---------------- minijuegos (ordenador de casa) ----------------
 
   function datosMinijuego(id) {
@@ -287,6 +297,8 @@ var Juego = (function () {
     desbloquearRecompensa: desbloquearRecompensa,
     aspecto: aspecto,
     cambiarAspecto: cambiarAspecto,
+    ambiente: ambiente,
+    cambiarAmbiente: cambiarAmbiente,
     datosMinijuego: datosMinijuego,
     empezarMinijuego: empezarMinijuego,
     terminarMinijuego: terminarMinijuego,

@@ -43,6 +43,7 @@
     <div id="hud-marca">Habbo Solo</div>
     <div id="hud-cartera">💰 <span id="hud-creditos">0</span></div>
     <div id="hud-sala-caja">🏠 <span id="hud-sala"></span></div>
+    <button id="btn-ambiente" title="Ciclo día/noche · pulsa para cambiar la fase"></button>
     <div id="hud-botones">
       <button id="btn-modo">🎨 Decorar</button>
       <button data-panel="catalogo">🛒 Catálogo</button>
@@ -73,6 +74,7 @@
 <script src="js/ui.js"></script>
 <script src="js/minijuegos.js"></script>
 <script src="js/guardado.js"></script>
+<script src="js/ambiente.js"></script>
 <script>
 (function () {
   var prueba = new URLSearchParams(location.search).get("prueba");
@@ -91,6 +93,7 @@
   Sala.cargar(Juego.salaActual());
   UI.iniciar();
   Minijuegos.iniciar();
+  Ambiente.iniciar();
 
   if (!prueba) {
     Guardado.iniciar({
@@ -400,6 +403,51 @@
       "\ncréditos: " + Juego.creditos() +
       "\ncamiseta: " + Juego.aspecto().camiseta +
       "\nestudio desbloqueado: " + (Juego.salas()[1].desbloqueada ? "SÍ" : "NO"));
+  }
+
+  // ---- pruebas del ciclo día/noche ----
+
+  function montarLuces() {
+    var s = Juego.salas()[0];
+    s.furnis.push({ uid: 70, id: "lampara_pie", x: 3, y: 5, rot: 0 });
+    s.furnis.push({ uid: 71, id: "velador", x: 8, y: 6, rot: 0 });
+    s.furnis.push({ uid: 72, id: "farol", x: 1, y: 3, rot: 0 });
+    s.furnis.push({ uid: 73, id: "tele", x: 4, y: 8, rot: 3 });
+    s.furnis.push({ uid: 74, id: "chimenea", x: 2, y: 0, rot: 0 });
+    Sala.cargar(Juego.salaActual());
+  }
+
+  if (prueba && prueba.indexOf("fase_") === 0) {
+    montarLuces();
+    Juego.cambiarAmbiente(prueba.slice(5)); // fase_noche → "noche"
+    Ambiente.aplicar();
+  } else if (prueba === "ambiente_flujo") {
+    var log6 = [];
+    function paso6(nombre, ok) { log6.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    paso6("9h es mañana", Ambiente.faseDeHora(9) === "manana");
+    paso6("15h es tarde", Ambiente.faseDeHora(15) === "tarde");
+    paso6("20h es atardecer", Ambiente.faseDeHora(20) === "atardecer");
+    paso6("23h es noche", Ambiente.faseDeHora(23) === "noche");
+    paso6("3h es noche", Ambiente.faseDeHora(3) === "noche");
+
+    Juego.cambiarAmbiente("noche");
+    Ambiente.aplicar();
+    paso6("modo manual noche", Ambiente.fase() === "noche");
+    paso6("luces encendidas de noche", Ambiente.lucesEncendidas());
+    paso6("se guarda en el estado", Juego.estado().ambiente === "noche");
+    var colorNoche = Paleta.get("blanco").sup;
+
+    Juego.cambiarAmbiente("manana");
+    Ambiente.aplicar();
+    paso6("luces apagadas de mañana", !Ambiente.lucesEncendidas());
+    paso6("la paleta cambia con la fase", Paleta.get("blanco").sup !== colorNoche);
+
+    Juego.cambiarAmbiente("atardecer");
+    Ambiente.aplicar();
+    paso6("al atardecer también hay luces", Ambiente.lucesEncendidas());
+
+    cajaTexto(log6.join("\n"));
   }
 })();
 </script>

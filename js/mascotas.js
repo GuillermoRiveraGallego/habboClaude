@@ -496,21 +496,27 @@ var Mascotas = (function () {
   }
 
   function miniatura(canvas, tipo) {
-    var ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height * 0.62);
-    var esc = Math.min(canvas.width / 105, canvas.height / 90) * 1.35;
-    ctx.scale(esc, esc);
-    Iso.plano(ctx, -0.55, -0.55, 0, 1.1, 1.1, "verde");
-    Iso.sombra(ctx, -0.3, -0.3, 0.6, 0.6);
-    var falsa = { uid: -1, tipo: tipo, felicidad: 80, hambre: 80, energia: 80 };
-    var rt = { x: 0, y: 0, dir: 1, objetivo: null, pose: "normal", saltoHasta: 0 };
-    if (tipo === "perro") pintarPartes(ctx, partesPerro(falsa, rt, 0));
-    else if (tipo === "gato") pintarPartes(ctx, partesGato(falsa, rt, 0));
-    else if (tipo === "pez") dibujarPez(ctx, 0, 0, 0.18, { dx: 0, dy: 1 }, "naranja", false);
-    else dibujarPajaro(ctx, 0, 0, 0.06, "turquesa", 0, false);
-    ctx.restore();
+    var ambientePrevio = Paleta.ambiente();
+    Paleta.ponAmbiente("manana"); // miniaturas siempre con luz de día
+    try {
+      var ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height * 0.62);
+      var esc = Math.min(canvas.width / 105, canvas.height / 90) * 1.35;
+      ctx.scale(esc, esc);
+      Iso.plano(ctx, -0.55, -0.55, 0, 1.1, 1.1, "verde");
+      Iso.sombra(ctx, -0.3, -0.3, 0.6, 0.6);
+      var falsa = { uid: -1, tipo: tipo, felicidad: 80, hambre: 80, energia: 80 };
+      var rt = { x: 0, y: 0, dir: 1, objetivo: null, pose: "normal", saltoHasta: 0 };
+      if (tipo === "perro") pintarPartes(ctx, partesPerro(falsa, rt, 0));
+      else if (tipo === "gato") pintarPartes(ctx, partesGato(falsa, rt, 0));
+      else if (tipo === "pez") dibujarPez(ctx, 0, 0, 0.18, { dx: 0, dy: 1 }, "naranja", false);
+      else dibujarPajaro(ctx, 0, 0, 0.06, "turquesa", 0, false);
+      ctx.restore();
+    } finally {
+      Paleta.ponAmbiente(ambientePrevio);
+    }
   }
 
   return {

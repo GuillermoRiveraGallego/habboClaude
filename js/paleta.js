@@ -78,23 +78,51 @@ var Paleta = (function () {
     return "#" + cb(r) + cb(g) + cb(b);
   }
 
-  function variante(hex, deltaL) {
-    var rgb = hexARgb(hex);
+  function varianteRgb(rgb, deltaL) {
     var hsl = rgbAHsl(rgb[0], rgb[1], rgb[2]);
     var l = Math.max(4, Math.min(96, hsl[2] + deltaL));
     return hslAHex(hsl[0], hsl[1], l);
   }
 
+  // --- Ambientes del ciclo día/noche ---
+  // Cada fase tiñe la paleta completa hacia un color de luz y
+  // ajusta la claridad global. Como TODO el juego se dibuja
+  // desde la paleta, el ambiente cambia el mundo entero.
+  var AMBIENTES = {
+    manana:    { tinte: [255, 255, 255], factor: 0,    dL: 0 },
+    tarde:     { tinte: [255, 214, 160], factor: 0.10, dL: 0 },
+    atardecer: { tinte: [255, 150, 90],  factor: 0.24, dL: -4 },
+    noche:     { tinte: [72, 92, 150],   factor: 0.40, dL: -11 }
+  };
+
+  var ambienteActual = "manana";
   var colores = {};
-  Object.keys(BASES).forEach(function (nombre) {
-    var b = BASES[nombre];
-    colores[nombre] = {
-      base: b,
-      sup: variante(b, 12),
-      izq: b,
-      der: variante(b, -15)
-    };
-  });
+
+  function generar() {
+    var amb = AMBIENTES[ambienteActual] || AMBIENTES.manana;
+    Object.keys(BASES).forEach(function (nombre) {
+      var rgb = hexARgb(BASES[nombre]);
+      var m = [
+        rgb[0] * (1 - amb.factor) + amb.tinte[0] * amb.factor,
+        rgb[1] * (1 - amb.factor) + amb.tinte[1] * amb.factor,
+        rgb[2] * (1 - amb.factor) + amb.tinte[2] * amb.factor
+      ];
+      colores[nombre] = {
+        base: varianteRgb(m, amb.dL),
+        sup: varianteRgb(m, 12 + amb.dL),
+        izq: varianteRgb(m, amb.dL),
+        der: varianteRgb(m, -15 + amb.dL)
+      };
+    });
+  }
+
+  function ponAmbiente(nombre) {
+    if (!AMBIENTES[nombre] || nombre === ambienteActual) return;
+    ambienteActual = nombre;
+    generar();
+  }
+
+  generar();
 
   var ERROR = { base: "#ff00ff", sup: "#ff66ff", izq: "#ff00ff", der: "#aa00aa" };
 
@@ -109,6 +137,8 @@ var Paleta = (function () {
 
   return {
     get: get,
-    nombres: Object.keys(BASES)
+    nombres: Object.keys(BASES),
+    ponAmbiente: ponAmbiente,
+    ambiente: function () { return ambienteActual; }
   };
 })();

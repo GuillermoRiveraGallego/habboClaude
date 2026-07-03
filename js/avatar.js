@@ -165,15 +165,21 @@ var Avatar = (function () {
 
   // Vista previa del avatar (panel de personalización)
   function miniatura(canvas, dir) {
-    var ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height * 0.84);
-    var esc = Math.min(canvas.width / 95, canvas.height / 115) * 1.3;
-    ctx.scale(esc, esc);
-    Iso.plano(ctx, -0.55, -0.55, 0, 1.1, 1.1, "beige");
-    dibujar(ctx, { x: 0, y: 0, dir: dir === undefined ? 1 : dir, pose: "parado", fase: 0, gz: 0 });
-    ctx.restore();
+    var ambientePrevio = Paleta.ambiente();
+    Paleta.ponAmbiente("manana"); // vista previa siempre con luz de día
+    try {
+      var ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height * 0.84);
+      var esc = Math.min(canvas.width / 95, canvas.height / 115) * 1.3;
+      ctx.scale(esc, esc);
+      Iso.plano(ctx, -0.55, -0.55, 0, 1.1, 1.1, "beige");
+      dibujar(ctx, { x: 0, y: 0, dir: dir === undefined ? 1 : dir, pose: "parado", fase: 0, gz: 0 });
+      ctx.restore();
+    } finally {
+      Paleta.ponAmbiente(ambientePrevio);
+    }
   }
 
   // Caja envolvente para el orden de pintado de la sala

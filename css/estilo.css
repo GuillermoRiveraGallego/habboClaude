@@ -40,6 +40,20 @@ body.juego {
   background:
     radial-gradient(1200px 600px at 50% 20%, #2d3140 0%, #23252c 70%);
   overflow: hidden;
+  transition: background 0.6s;
+}
+
+/* fondo del escenario según la fase del día */
+body.fase-tarde #zona-canvas {
+  background: radial-gradient(1200px 600px at 50% 20%, #37333c 0%, #262229 70%);
+}
+
+body.fase-atardecer #zona-canvas {
+  background: radial-gradient(1200px 600px at 50% 20%, #3d2a33 0%, #221a20 70%);
+}
+
+body.fase-noche #zona-canvas {
+  background: radial-gradient(1200px 600px at 50% 20%, #1b2030 0%, #12141c 70%);
 }
 
 #lienzo {

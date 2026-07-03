@@ -223,6 +223,7 @@ var Furnis = (function () {
     tam: [2, 1],
     altura: 1.62,
     rotaciones: 4,
+    luz: { x: 0.85, y: 0.44, z: 1.38, radio: 50, color: [130, 225, 215] },
     dibujar: function (p) {
       p.cubo(0.06, 0.04, 0, 0.14, 0.92, 0.85, "madera_oscura");
       p.cubo(1.8, 0.04, 0, 0.14, 0.92, 0.85, "madera_oscura");
@@ -244,6 +245,7 @@ var Furnis = (function () {
     precio: 95,
     tam: [1, 1],
     altura: 1.25,
+    luz: { x: 0.5, y: 0.5, z: 1.07, radio: 78, color: [255, 212, 120] },
     dibujar: function (p) {
       patas4(p, 0.16, 0.16, 0.84, 0.84, 0.1, 0.38, "madera_oscura");
       p.cubo(0.06, 0.06, 0.38, 0.88, 0.88, 0.12, "madera_oscura");
@@ -903,6 +905,7 @@ var Furnis = (function () {
     tam: [1, 1],
     altura: 0.95,
     rotaciones: 4,
+    luz: { x: 0.64, y: 0.5, z: 0.64, radio: 55, color: [150, 215, 255] },
     dibujar: function (p) {
       p.cubo(0.3, 0.2, 0, 0.3, 0.6, 0.12, "gris_oscuro"); // base
       p.cubo(0.42, 0.42, 0.12, 0.12, 0.16, 0.25, "gris_oscuro"); // soporte
@@ -972,6 +975,7 @@ var Furnis = (function () {
     precio: 75,
     tam: [1, 1],
     altura: 1.75,
+    luz: { x: 0.5, y: 0.5, z: 1.5, radio: 95, color: [255, 212, 120] },
     dibujar: function (p) {
       p.cilindro(0.5, 0.5, 0, 0.2, 0.06, "gris_oscuro");
       p.cilindro(0.5, 0.5, 0.06, 0.035, 1.28, "gris_oscuro");
@@ -986,6 +990,7 @@ var Furnis = (function () {
     precio: 65,
     tam: [1, 1],
     altura: 0.9,
+    luz: { x: 0.5, y: 0.5, z: 0.42, radio: 70, color: [255, 170, 80] },
     dibujar: function (p) {
       p.cubo(0.26, 0.26, 0, 0.48, 0.48, 0.08, "negro");
       p.cubo(0.3, 0.3, 0.08, 0.4, 0.4, 0.55, "naranja");
@@ -1101,6 +1106,7 @@ var Furnis = (function () {
     altura: 1.6,
     rotaciones: 4,
     raro: true,
+    luz: { x: 1.0, y: 0.88, z: 0.35, radio: 105, color: [255, 150, 60] },
     dibujar: function (p) {
       p.cubo(0, 0.15, 0, 2, 0.55, 1.5, "gris"); // trasera
       p.cubo(0, 0.7, 0, 0.35, 0.3, 1.5, "gris"); // lado izq
@@ -1211,6 +1217,18 @@ var Furnis = (function () {
     return rot % 2 ? [f.tam[1], f.tam[0]] : [f.tam[0], f.tam[1]];
   }
 
+  // Transforma un punto local del furni según su rotación
+  // (p. ej. la posición de su fuente de luz def.luz)
+  function puntoRotado(id, rot, lx, ly) {
+    var f = get(id), an = f.tam[0], fo = f.tam[1];
+    switch (rot || 0) {
+      case 1: return { x: fo - ly, y: lx };
+      case 2: return { x: an - lx, y: fo - ly };
+      case 3: return { x: ly, y: an - lx };
+      default: return { x: lx, y: ly };
+    }
+  }
+
   function dibujar(ctx, id, x, y, rot) {
     var f = get(id);
     if (!f) return;
@@ -1250,6 +1268,17 @@ var Furnis = (function () {
   function miniatura(canvas, id) {
     var f = get(id);
     if (!f) return;
+    // las miniaturas siempre con luz de día, sea la hora que sea
+    var ambientePrevio = Paleta.ambiente();
+    Paleta.ponAmbiente("manana");
+    try {
+      miniaturaInterna(canvas, f, id);
+    } finally {
+      Paleta.ponAmbiente(ambientePrevio);
+    }
+  }
+
+  function miniaturaInterna(canvas, f, id) {
     var ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
@@ -1308,6 +1337,7 @@ var Furnis = (function () {
     lista: lista,
     categorias: categorias,
     pie: pie,
+    puntoRotado: puntoRotado,
     dibujar: dibujar,
     miniatura: miniatura,
   };

@@ -738,6 +738,16 @@ var UI = (function () {
     btnModo.addEventListener("click", function () {
       ponerModo(Sala.modo() === "decorar" ? "pasear" : "decorar");
     });
+    // ciclo día/noche
+    var btnAmbiente = document.getElementById("btn-ambiente");
+    if (btnAmbiente && window.Ambiente) {
+      btnAmbiente.addEventListener("click", function () {
+        Ambiente.siguiente();
+      });
+      Ambiente.ponAlCambiar(function () {
+        btnAmbiente.textContent = Ambiente.etiqueta();
+      });
+    }
     document.querySelectorAll("#hud [data-panel]").forEach(function (b) {
       b.addEventListener("click", function () {
         var nombre = b.getAttribute("data-panel");
