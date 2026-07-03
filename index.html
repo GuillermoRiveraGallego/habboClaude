@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habbo Solo — Fase 1: sala de muestra</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <h1>Habbo Solo</h1>
+  <p>Fase 1 — sala de muestra con 5 furnis · <a href="catalogo.html">ver página de catálogo</a></p>
+</header>
+
+<canvas id="lienzo" class="lienzo-demo"></canvas>
+
+<script src="js/paleta.js"></script>
+<script src="js/iso.js"></script>
+<script src="js/furnis.js"></script>
+<script>
+(function () {
+  var W = 980, H = 620;
+  var canvas = document.getElementById("lienzo");
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  var ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  var N = 8;              // sala 8×8
+  var GROSOR = 0.18;      // grosor de pared
+  var ALTO_PARED = 2.4;
+
+  ctx.save();
+  ctx.translate(W / 2, 205);
+  ctx.scale(1.25, 1.25);
+
+  // Paredes (la propia primitiva cubo les da el sombreado correcto)
+  Iso.cubo(ctx, -GROSOR, -GROSOR, 0, GROSOR, N + GROSOR, ALTO_PARED, "azul_claro");
+  Iso.cubo(ctx, 0, -GROSOR, 0, N, GROSOR, ALTO_PARED, "azul_claro");
+
+  // Losa del suelo con grosor + baldosas en damero
+  Iso.cubo(ctx, 0, 0, -0.22, N, N, 0.22, "beige");
+  for (var gy = 0; gy < N; gy++) {
+    for (var gx = 0; gx < N; gx++) {
+      Iso.plano(ctx, gx, gy, 0, 1, 1, ((gx + gy) % 2) ? "crema" : "beige");
+    }
+  }
+
+  // Los 5 furnis de muestra
+  var piezas = [
+    { id: "silla_roja",      x: 2, y: 2 },
+    { id: "mesa_madera",     x: 3, y: 2 },
+    { id: "planta_helecho",  x: 6, y: 1 },
+    { id: "cama_azul",       x: 1, y: 5 },
+    { id: "sofa_azul",       x: 4, y: 6 }
+  ];
+
+  // Orden de pintado: de atrás hacia delante
+  piezas.sort(function (a, b) { return (a.x + a.y) - (b.x + b.y); });
+
+  piezas.forEach(function (p) {
+    var f = Furnis.get(p.id);
+    Iso.sombra(ctx, p.x, p.y, f.tam[0], f.tam[1]);
+    f.dibujar(ctx, p.x, p.y, 0);
+  });
+
+  ctx.restore();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habbo Solo — Catálogo (prueba visual)</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <h1>Catálogo</h1>
+  <p>Página de prueba visual · <a href="index.html">volver a la sala de muestra</a></p>
+</header>
+
+<section class="panel">
+  <h2>Paleta cerrada (20 colores × 3 variantes: superior / lateral / frontal)</h2>
+  <div id="paleta" class="paleta"></div>
+</section>
+
+<section class="panel">
+  <h2>Furnis</h2>
+  <div id="furnis" class="rejilla"></div>
+</section>
+
+<script src="js/paleta.js"></script>
+<script src="js/iso.js"></script>
+<script src="js/furnis.js"></script>
+<script>
+(function () {
+  // --- Muestras de la paleta ---
+  var contPaleta = document.getElementById("paleta");
+  Paleta.nombres.forEach(function (nombre) {
+    var c = Paleta.get(nombre);
+    var div = document.createElement("div");
+    div.className = "muestra-color";
+    div.innerHTML =
+      '<div class="tonos">' +
+        '<span style="background:' + c.sup + '"></span>' +
+        '<span style="background:' + c.izq + '"></span>' +
+        '<span style="background:' + c.der + '"></span>' +
+      '</div>' + nombre;
+    contPaleta.appendChild(div);
+  });
+
+  // --- Miniaturas de furnis ---
+  var contFurnis = document.getElementById("furnis");
+  Furnis.lista().forEach(function (f) {
+    var carta = document.createElement("div");
+    carta.className = "carta";
+    var canvas = document.createElement("canvas");
+    canvas.width = 190;
+    canvas.height = 170;
+    carta.appendChild(canvas);
+    var info = document.createElement("div");
+    info.innerHTML =
+      '<div class="nombre">' + f.nombre + '</div>' +
+      '<div class="detalle">' + f.categoria + ' · ' + f.tam[0] + '×' + f.tam[1] +
+      ' · <span class="precio">' + f.precio + ' créditos</span></div>';
+    carta.appendChild(info);
+    contFurnis.appendChild(carta);
+    Furnis.miniatura(canvas, f.id);
+  });
+})();
+</script>
+</body>
+</html>

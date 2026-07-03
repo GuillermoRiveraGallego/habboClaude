@@ -1,0 +1,128 @@
+/* ============================================================
+   ESTILO — UI del juego, coherente con la paleta de paleta.js
+   (fondos = negro/gris_oscuro, acentos = azul/amarillo).
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: #23252c;
+  color: #f2efe6;
+  font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.cabecera {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.cabecera h1 {
+  margin: 0 0 4px;
+  font-size: 30px;
+  letter-spacing: 1px;
+  color: #e4c25a;
+  text-shadow: 2px 2px 0 #343740;
+}
+
+.cabecera p {
+  margin: 0;
+  color: #a3a8af;
+  font-size: 14px;
+}
+
+.cabecera a {
+  color: #93badb;
+  font-weight: bold;
+}
+
+canvas.lienzo-demo {
+  background: linear-gradient(#2a2f3d, #232733);
+  border: 3px solid #464d5e;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* --- Página de catálogo (prueba visual) --- */
+
+.panel {
+  width: 100%;
+  max-width: 1060px;
+  background: #2b2f3a;
+  border: 2px solid #464d5e;
+  border-radius: 14px;
+  padding: 16px 20px 20px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: #e4c25a;
+}
+
+.paleta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.muestra-color {
+  background: #343a48;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  text-align: center;
+  color: #cfd3da;
+}
+
+.muestra-color .tonos {
+  display: flex;
+  height: 34px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.muestra-color .tonos span { flex: 1; }
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.carta {
+  background: #343a48;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+.carta canvas {
+  background: linear-gradient(#3b4254, #333949);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.carta .nombre {
+  font-weight: bold;
+  margin: 8px 0 2px;
+  font-size: 14px;
+}
+
+.carta .detalle {
+  font-size: 12px;
+  color: #a3a8af;
+}
+
+.carta .precio {
+  color: #e4c25a;
+  font-weight: bold;
+}
