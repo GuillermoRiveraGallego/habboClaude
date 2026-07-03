@@ -125,6 +125,7 @@ var Furnis = (function () {
     ["electro", "Electro"],
     ["iluminacion", "Iluminación"],
     ["pared", "Pared"],
+    ["jardin", "Jardín"],
     ["otros", "Otros"],
   ];
 
@@ -1079,17 +1080,15 @@ var Furnis = (function () {
     precio: 260,
     tam: [2, 1],
     altura: 1.1,
-    rotaciones: 2,
+    rotaciones: 4,
     raro: true,
     dibujar: function (p) {
+      // vacío: los peces son mascotas y viven dentro (jardín)
       p.cubo(0.05, 0.05, 0, 1.9, 0.9, 0.45, "madera_oscura"); // mueble
       p.cubo(0.1, 0.1, 0.45, 1.8, 0.8, 0.55, "turquesa"); // agua
       p.cubo(0.05, 0.05, 1.0, 1.9, 0.9, 0.08, "gris_oscuro"); // tapa
-      // peces "pegados" al cristal frontal
-      p.cubo(0.45, 0.9, 0.62, 0.16, 0.08, 0.1, "naranja");
-      p.cubo(1.15, 0.9, 0.74, 0.14, 0.08, 0.09, "amarillo");
-      p.cubo(1.9, 0.35, 0.58, 0.08, 0.14, 0.09, "rosa");
       p.cubo(0.85, 0.9, 0.52, 0.05, 0.06, 0.05, "blanco"); // burbuja
+      p.cubo(1.45, 0.9, 0.7, 0.04, 0.05, 0.04, "blanco"); // burbuja
     },
   });
 
@@ -1100,7 +1099,7 @@ var Furnis = (function () {
     precio: 300,
     tam: [2, 1],
     altura: 1.6,
-    rotaciones: 2,
+    rotaciones: 4,
     raro: true,
     dibujar: function (p) {
       p.cubo(0, 0.15, 0, 2, 0.55, 1.5, "gris"); // trasera
@@ -1112,6 +1111,78 @@ var Furnis = (function () {
       p.cilindro(0.85, 0.88, 0.06, 0.15, 0.36, "naranja"); // fuego
       p.cilindro(1.15, 0.88, 0.06, 0.12, 0.27, "amarillo");
       p.cubo(0, 0.08, 1.5, 2, 0.96, 0.1, "gris_oscuro"); // repisa
+    },
+  });
+
+  // ==========================================================
+  // JARDÍN (aviario para pájaros + recompensas exclusivas
+  // desbloqueadas por la felicidad de las mascotas)
+  // ==========================================================
+
+  def({
+    id: "aviario",
+    nombre: "Aviario",
+    categoria: "jardin",
+    precio: 300,
+    tam: [1, 1],
+    altura: 1.85,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.05, 0, 0.9, 0.9, 0.1, "gris_oscuro"); // base
+      // postes de las esquinas
+      p.cubo(0.08, 0.08, 0.1, 0.05, 0.05, 1.5, "gris_oscuro");
+      p.cubo(0.87, 0.08, 0.1, 0.05, 0.05, 1.5, "gris_oscuro");
+      p.cubo(0.08, 0.87, 0.1, 0.05, 0.05, 1.5, "gris_oscuro");
+      p.cubo(0.87, 0.87, 0.1, 0.05, 0.05, 1.5, "gris_oscuro");
+      // percha
+      p.cubo(0.15, 0.48, 0.7, 0.7, 0.04, 0.04, "madera");
+      // barrotes de las caras visibles
+      p.cubo(0.88, 0.28, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      p.cubo(0.88, 0.49, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      p.cubo(0.88, 0.7, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      p.cubo(0.28, 0.88, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      p.cubo(0.49, 0.88, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      p.cubo(0.7, 0.88, 0.1, 0.03, 0.03, 1.5, "gris_oscuro");
+      // techo y remate
+      p.cubo(0.05, 0.05, 1.6, 0.9, 0.9, 0.07, "gris_oscuro");
+      p.cilindro(0.5, 0.5, 1.67, 0.1, 0.16, "amarillo");
+    },
+  });
+
+  def({
+    id: "fuente",
+    nombre: "Fuente de piedra",
+    categoria: "jardin",
+    precio: 0,
+    recompensa: true,
+    tam: [1, 1],
+    altura: 1.35,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.45, 0.24, "gris"); // pila
+      p.cilindro(0.5, 0.5, 0.24, 0.37, 0.05, "turquesa"); // agua
+      p.cilindro(0.5, 0.5, 0.24, 0.08, 0.55, "gris"); // columna
+      p.cilindro(0.5, 0.5, 0.79, 0.2, 0.07, "gris"); // plato
+      p.cilindro(0.5, 0.5, 0.86, 0.14, 0.04, "turquesa"); // agua plato
+      p.cilindro(0.5, 0.5, 0.9, 0.04, 0.32, "azul_claro"); // chorro
+    },
+  });
+
+  def({
+    id: "gnomo",
+    nombre: "Gnomo de jardín",
+    categoria: "jardin",
+    precio: 0,
+    recompensa: true,
+    tam: [1, 1],
+    altura: 0.85,
+    dibujar: function (p) {
+      p.cilindro(0.46, 0.5, 0, 0.09, 0.06, "negro"); // pies
+      p.cilindro(0.58, 0.5, 0, 0.09, 0.06, "negro");
+      p.cilindro(0.5, 0.5, 0.06, 0.15, 0.3, "azul"); // cuerpo
+      p.cubo(0.36, 0.42, 0.2, 0.1, 0.16, 0.1, "piel"); // manos
+      p.cilindro(0.5, 0.5, 0.36, 0.11, 0.08, "blanco"); // barba
+      p.cilindro(0.5, 0.5, 0.44, 0.1, 0.14, "piel"); // cabeza
+      p.cilindro(0.5, 0.5, 0.58, 0.11, 0.12, "rojo"); // gorro
+      p.cilindro(0.5, 0.5, 0.7, 0.06, 0.12, "rojo"); // punta gorro
     },
   });
 

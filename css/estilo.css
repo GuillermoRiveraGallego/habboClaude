@@ -311,6 +311,131 @@ button.muestra.activo {
 
 #menu-furni button:hover { background: #46506a; }
 
+/* ============ MASCOTAS ============ */
+
+.fila-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 11.5px;
+  color: #cfd3da;
+}
+
+.fila-barra > span { width: 62px; flex-shrink: 0; }
+
+.barra {
+  flex: 1;
+  height: 9px;
+  background: #23252c;
+  border: 1px solid #464d5e;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.relleno {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s;
+}
+
+.b-hambre { background: #e08f45; }
+.b-felicidad { background: #e4c25a; }
+.b-energia { background: #58b2a4; }
+
+.jardin-global {
+  background: #343a48;
+  border: 2px solid #464d5e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.jardin-global .barra { margin: 6px 0; }
+
+.carta-mascota {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #343a48;
+  border: 2px solid #464d5e;
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.carta-mascota canvas {
+  background: linear-gradient(#3b4254, #333949);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mascota-info { flex: 1; min-width: 0; }
+.mascota-info .nombre { font-weight: bold; font-size: 13.5px; }
+
+.mascota-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mascota-acciones .mini { margin-top: 0; }
+
+.fila-comida {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #343a48;
+  border: 2px solid #464d5e;
+  border-radius: 10px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.fila-comida .mini { margin-top: 0; flex-shrink: 0; }
+
+#panel-mascota {
+  position: absolute;
+  width: 230px;
+  background: #2b2f3a;
+  border: 2px solid #565f75;
+  border-radius: 12px;
+  padding: 10px 12px;
+  z-index: 7;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+#pm-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+#pm-cerrar {
+  background: #3b4254;
+  border: 2px solid #565f75;
+  color: #f2efe6;
+  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+#pm-acciones {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#pm-acciones .mini { margin-top: 0; flex: 1; }
+
 /* ============ PISTA Y AVISOS ============ */
 
 #pista-fantasma {

@@ -8,11 +8,14 @@
 var UI = (function () {
 
   var elCreditos, elNombreSala, elPanel, elPanelTitulo, elPanelPestanas,
-      elPanelContenido, elMenuFurni, elAvisos, elPistaFantasma, btnModo;
+      elPanelContenido, elMenuFurni, elAvisos, elPistaFantasma, btnModo,
+      elPanelMascota;
 
-  var panelAbierto = null;      // "catalogo" | "inventario" | "salas" | null
+  var panelAbierto = null;      // "catalogo" | "inventario" | "salas" | "mascotas" | null
   var categoriaActiva = "mesas";
   var movimiento = null;        // furni retirado de la sala mientras se mueve
+  var pestanaMascotas = "mias"; // "mias" | "tienda"
+  var mascotaAbierta = null;    // uid de la mascota del panel flotante
 
   var COLORES_SUELO = ["beige", "crema", "blanco", "gris", "madera", "verde", "azul_claro", "rosa"];
   var COLORES_PARED = ["azul_claro", "crema", "amarillo", "verde", "turquesa", "rosa", "morado", "gris"];
@@ -51,15 +54,17 @@ var UI = (function () {
 
   // ---------------- panel lateral ----------------
 
-  function abrirPanel(nombre) {
-    if (nombre !== "salas") ponerModoSinCerrar("decorar");
+  function abrirPanel(nombre, sub) {
+    if (nombre !== "salas" && nombre !== "mascotas") ponerModoSinCerrar("decorar");
     panelAbierto = nombre;
+    if (sub) pestanaMascotas = sub;
     elPanel.classList.remove("oculto");
     document.querySelectorAll("#hud [data-panel]").forEach(function (b) {
       b.classList.toggle("activo", b.getAttribute("data-panel") === nombre);
     });
     if (nombre === "catalogo") pintarCatalogo();
     else if (nombre === "inventario") pintarInventario();
+    else if (nombre === "mascotas") pintarMascotas();
     else pintarSalas();
   }
 
@@ -117,9 +122,13 @@ var UI = (function () {
     rejilla.className = "rejilla-panel";
     Furnis.lista().forEach(function (f) {
       if (f.categoria !== categoriaActiva) return;
+      // recompensas del jardín: ocultas hasta desbloquearlas
+      if (f.recompensa && !Juego.recompensas()[f.id]) return;
       var extra = document.createElement("div");
       extra.className = "detalle";
-      extra.innerHTML = '<span class="precio">' + f.precio + ' cr</span>';
+      extra.innerHTML = f.recompensa
+        ? '<span class="precio">🎁 Regalo del jardín</span>'
+        : '<span class="precio">' + f.precio + ' cr</span>';
       var carta = tarjetaFurni(f, extra);
       carta.classList.add("clicable");
       if (Juego.creditos() < f.precio) carta.classList.add("caro");
@@ -183,8 +192,9 @@ var UI = (function () {
     Juego.salas().forEach(function (s, i) {
       var div = document.createElement("div");
       div.className = "sala-item" + (i === Juego.indiceSala() ? " actual" : "");
-      var texto = '<div class="nombre">' + s.nombre + '</div>' +
-                  '<div class="detalle">' + s.ancho + '×' + s.fondo + ' casillas</div>';
+      var texto = '<div class="nombre">' + (s.tipo === "jardin" ? "🌳 " : "") + s.nombre + '</div>' +
+                  '<div class="detalle">' + s.ancho + '×' + s.fondo + ' casillas' +
+                  (s.tipo === "jardin" ? ' · zona exterior, hogar de tus mascotas' : '') + '</div>';
       div.innerHTML = texto;
       if (s.desbloqueada) {
         if (i !== Juego.indiceSala()) {
@@ -193,6 +203,7 @@ var UI = (function () {
           b.textContent = "Ir a la sala";
           b.addEventListener("click", function () {
             cancelarFantasma();
+            cerrarPanelMascota();
             Juego.cambiarSala(i);
             Sala.cargar(Juego.salaActual());
             refrescarHud();
@@ -217,12 +228,214 @@ var UI = (function () {
       elPanelContenido.appendChild(div);
     });
 
-    // colores de la sala actual
-    var titulo = document.createElement("h3");
-    titulo.textContent = "Colores de esta sala";
-    elPanelContenido.appendChild(titulo);
-    elPanelContenido.appendChild(filaColores("Suelo", COLORES_SUELO, "suelo"));
-    elPanelContenido.appendChild(filaColores("Paredes", COLORES_PARED, "pared"));
+    // colores de la sala actual (el jardín es césped y setos)
+    if (Juego.salaActual().tipo !== "jardin") {
+      var titulo = document.createElement("h3");
+      titulo.textContent = "Colores de esta sala";
+      elPanelContenido.appendChild(titulo);
+      elPanelContenido.appendChild(filaColores("Suelo", COLORES_SUELO, "suelo"));
+      elPanelContenido.appendChild(filaColores("Paredes", COLORES_PARED, "pared"));
+    }
+  }
+
+  // ---------------- panel de mascotas ----------------
+
+  function barra(etiqueta, valor, clase) {
+    return '<div class="fila-barra"><span>' + etiqueta + '</span>' +
+      '<div class="barra"><div class="relleno ' + clase + '" style="width:' +
+      Math.round(valor) + '%"></div></div></div>';
+  }
+
+  function barrasDe(m) {
+    return barra("Hambre", m.hambre, "b-hambre") +
+           barra("Felicidad", m.felicidad, "b-felicidad") +
+           barra("Energía", m.energia, "b-energia");
+  }
+
+  function pintarMascotas() {
+    elPanelTitulo.textContent = "🐾 Mascotas";
+    elPanelPestanas.innerHTML = "";
+    elPanelContenido.innerHTML = "";
+
+    [["mias", "Mis mascotas"], ["tienda", "Tienda"]].forEach(function (t) {
+      var b = document.createElement("button");
+      b.textContent = t[1];
+      b.classList.toggle("activo", pestanaMascotas === t[0]);
+      b.addEventListener("click", function () {
+        pestanaMascotas = t[0];
+        pintarMascotas();
+      });
+      elPanelPestanas.appendChild(b);
+    });
+
+    if (pestanaMascotas === "mias") pintarMisMascotas();
+    else pintarTienda();
+  }
+
+  function pintarMisMascotas() {
+    var lista = Juego.mascotas();
+    var media = Mascotas.felicidadGlobal();
+    if (media !== null) {
+      var cab = document.createElement("div");
+      cab.className = "jardin-global";
+      cab.innerHTML = "Felicidad del jardín: <b>" + media + "%</b>" +
+        '<div class="barra"><div class="relleno b-felicidad" style="width:' + media + '%"></div></div>' +
+        '<div class="detalle">Con 3+ mascotas al 80% (y 5+ al 85%) desbloqueas regalos exclusivos</div>';
+      elPanelContenido.appendChild(cab);
+    }
+    if (!lista.length) {
+      elPanelContenido.innerHTML +=
+        '<p class="vacio">Aún no tienes mascotas. Desbloquea El Jardín y pásate por la pestaña Tienda 🐕</p>';
+      return;
+    }
+    lista.forEach(function (m) {
+      var t = Mascotas.TIPOS[m.tipo];
+      var div = document.createElement("div");
+      div.className = "carta-mascota";
+      var cv = document.createElement("canvas");
+      cv.width = 78;
+      cv.height = 66;
+      div.appendChild(cv);
+      var info = document.createElement("div");
+      info.className = "mascota-info";
+      info.innerHTML = '<div class="nombre">' + m.nombre + " " +
+        Mascotas.emojiEstado(Mascotas.estadoDe(m)) + '</div>' +
+        '<div class="detalle">' + t.nombre + '</div>' +
+        '<div data-barras="' + m.uid + '">' + barrasDe(m) + '</div>';
+      div.appendChild(info);
+      var acciones = document.createElement("div");
+      acciones.className = "mascota-acciones";
+      var bA = document.createElement("button");
+      bA.className = "mini";
+      bA.textContent = "🍖 (" + (Juego.comida()[m.tipo] || 0) + ")";
+      bA.title = "Alimentar";
+      bA.addEventListener("click", function () {
+        var r = Mascotas.alimentar(m);
+        avisar(r.ok ? m.nombre + " ha comido a gusto" : r.error, r.ok ? "ok" : "error");
+        pintarMascotas();
+      });
+      var bJ = document.createElement("button");
+      bJ.className = "mini";
+      bJ.textContent = "🎾";
+      bJ.title = "Jugar";
+      bJ.addEventListener("click", function () {
+        var r = Mascotas.jugar(m);
+        avisar(r.ok ? "¡" + m.nombre + " se lo pasa en grande!" : r.error, r.ok ? "ok" : "error");
+        pintarMascotas();
+      });
+      acciones.appendChild(bA);
+      acciones.appendChild(bJ);
+      div.appendChild(acciones);
+      elPanelContenido.appendChild(div);
+      Mascotas.miniatura(cv, m.tipo);
+    });
+  }
+
+  function pintarTienda() {
+    var h = document.createElement("h3");
+    h.textContent = "Animales";
+    h.style.marginTop = "4px";
+    elPanelContenido.appendChild(h);
+
+    var rejilla = document.createElement("div");
+    rejilla.className = "rejilla-panel";
+    Object.keys(Mascotas.TIPOS).forEach(function (tipo) {
+      var t = Mascotas.TIPOS[tipo];
+      var carta = document.createElement("div");
+      carta.className = "carta clicable";
+      var cv = document.createElement("canvas");
+      cv.width = 120;
+      cv.height = 90;
+      carta.appendChild(cv);
+      var req = t.hogar
+        ? (tipo === "pez" ? "Necesita acuario en el jardín" : "Necesita aviario en el jardín")
+        : "Pasea libre por el jardín";
+      var info = document.createElement("div");
+      info.className = "carta-info";
+      info.innerHTML = '<div class="nombre">' + t.emoji + " " + t.nombre +
+        '</div><div class="detalle"><span class="precio">' + t.precio + ' cr</span><br>' + req + '</div>';
+      carta.appendChild(info);
+      carta.addEventListener("click", function () { comprarMascota(tipo); });
+      rejilla.appendChild(carta);
+      Mascotas.miniatura(cv, tipo);
+    });
+    elPanelContenido.appendChild(rejilla);
+
+    var h2 = document.createElement("h3");
+    h2.textContent = "Comida (tu despensa)";
+    elPanelContenido.appendChild(h2);
+    Object.keys(Mascotas.COMIDA).forEach(function (tipo) {
+      var c = Mascotas.COMIDA[tipo];
+      var fila = document.createElement("div");
+      fila.className = "fila-comida";
+      fila.innerHTML = '<span>' + c.nombre + '</span>' +
+        '<span class="detalle">tienes ' + (Juego.comida()[tipo] || 0) + '</span>';
+      var b = document.createElement("button");
+      b.className = "mini dorado";
+      b.textContent = c.precio + " cr";
+      b.addEventListener("click", function () {
+        if (!Juego.gastar(c.precio)) {
+          avisar("No tienes créditos suficientes", "error");
+          return;
+        }
+        Juego.agregarComida(tipo);
+        avisar(c.nombre + " añadida a la despensa", "ok");
+        pintarMascotas();
+      });
+      fila.appendChild(b);
+      elPanelContenido.appendChild(fila);
+    });
+  }
+
+  function comprarMascota(tipo) {
+    var r = Mascotas.puedeComprar(tipo);
+    if (!r.ok) { avisar(r.error, "error"); return; }
+    var t = Mascotas.TIPOS[tipo];
+    var sug = t.sugerencias[(Math.random() * t.sugerencias.length) | 0];
+    var nombre = window.prompt("¿Cómo se llamará tu " + t.nombre.toLowerCase() + "?", sug);
+    if (nombre === null) return;
+    nombre = (nombre || sug).trim().slice(0, 16) || sug;
+    var res = Mascotas.comprar(tipo, nombre);
+    if (!res.ok) { avisar(res.error, "error"); return; }
+    avisar("¡" + res.mascota.nombre + " se ha unido al jardín!", "ok");
+    pintarMascotas();
+  }
+
+  // panel flotante al pulsar una mascota en el jardín
+  function abrirPanelMascota(m, punto) {
+    mascotaAbierta = m.uid;
+    elPanelMascota.classList.remove("oculto");
+    var zona = elPanelMascota.parentElement;
+    var x = Math.max(10, Math.min((punto ? punto.x : 200) - 110, zona.clientWidth - 240));
+    var y = Math.max(10, (punto ? punto.y : 150) - 175);
+    elPanelMascota.style.left = x + "px";
+    elPanelMascota.style.top = y + "px";
+    refrescarPanelMascota();
+  }
+
+  function cerrarPanelMascota() {
+    mascotaAbierta = null;
+    elPanelMascota.classList.add("oculto");
+  }
+
+  function mascotaPorUid(uid) {
+    var lista = Juego.mascotas();
+    for (var i = 0; i < lista.length; i++) if (lista[i].uid === uid) return lista[i];
+    return null;
+  }
+
+  function refrescarPanelMascota() {
+    var m = mascotaPorUid(mascotaAbierta);
+    if (!m) { cerrarPanelMascota(); return; }
+    var t = Mascotas.TIPOS[m.tipo];
+    var e = Mascotas.estadoDe(m);
+    document.getElementById("pm-titulo").innerHTML =
+      t.emoji + " <b>" + m.nombre + "</b> · " +
+      (e === "contento" ? "Contento" : e === "normal" ? "Normal" : "Triste") +
+      " " + Mascotas.emojiEstado(e);
+    document.getElementById("pm-barras").innerHTML = barrasDe(m);
+    document.getElementById("pm-alimentar").textContent =
+      "🍖 Alimentar (" + (Juego.comida()[m.tipo] || 0) + ")";
   }
 
   function filaColores(etiqueta, colores, tipo) {
@@ -354,7 +567,16 @@ var UI = (function () {
     ocultarMenuFurni();
   }
 
+  function hogarHabitado(f) {
+    if (window.Mascotas && Mascotas.habitantesDe(f.uid).length) {
+      avisar("¡Ahí viven tus mascotas! No puedes quitarlo", "error");
+      return true;
+    }
+    return false;
+  }
+
   function accionGuardar(f) {
+    if (hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
     if (!inst) return;
@@ -365,6 +587,7 @@ var UI = (function () {
   }
 
   function accionVender(f) {
+    if (hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
     if (!inst) return;
@@ -372,6 +595,13 @@ var UI = (function () {
     Sala.deseleccionar();
     ocultarMenuFurni();
     avisar("Vendido por " + n + " créditos", "ok");
+  }
+
+  function refrescarBarrasLista() {
+    document.querySelectorAll("[data-barras]").forEach(function (el) {
+      var m = mascotaPorUid(parseInt(el.getAttribute("data-barras"), 10));
+      if (m) el.innerHTML = barrasDe(m);
+    });
   }
 
   // ---------------- arranque ----------------
@@ -387,6 +617,7 @@ var UI = (function () {
     elAvisos = document.getElementById("avisos");
     elPistaFantasma = document.getElementById("pista-fantasma");
     btnModo = document.getElementById("btn-modo");
+    elPanelMascota = document.getElementById("panel-mascota");
 
     Juego.ponAlCambiar(refrescarHud);
 
@@ -420,6 +651,41 @@ var UI = (function () {
       if (f) accionVender(f);
     });
 
+    // panel flotante de mascota
+    document.getElementById("pm-cerrar").addEventListener("click", cerrarPanelMascota);
+    document.getElementById("pm-alimentar").addEventListener("click", function () {
+      var m = mascotaPorUid(mascotaAbierta);
+      if (!m) return;
+      var r = Mascotas.alimentar(m);
+      avisar(r.ok ? m.nombre + " ha comido a gusto" : r.error, r.ok ? "ok" : "error");
+      refrescarPanelMascota();
+    });
+    document.getElementById("pm-jugar").addEventListener("click", function () {
+      var m = mascotaPorUid(mascotaAbierta);
+      if (!m) return;
+      var r = Mascotas.jugar(m);
+      avisar(r.ok ? "¡" + m.nombre + " se lo pasa en grande!" : r.error, r.ok ? "ok" : "error");
+      refrescarPanelMascota();
+    });
+
+    // recompensas del jardín
+    if (window.Mascotas) {
+      Mascotas.ponAlRecompensa(function (id, mensaje) {
+        avisar(mensaje, "ok");
+        if (panelAbierto === "catalogo") pintarCatalogo();
+      });
+    }
+
+    // las barras de las mascotas cambian en vivo
+    setInterval(function () {
+      if (mascotaAbierta !== null && !elPanelMascota.classList.contains("oculto")) {
+        refrescarPanelMascota();
+      }
+      if (panelAbierto === "mascotas" && pestanaMascotas === "mias") {
+        refrescarBarrasLista();
+      }
+    }, 600);
+
     // callbacks del motor
     Sala.enlazar({
       alColocar: alColocar,
@@ -428,7 +694,8 @@ var UI = (function () {
         if (f && punto) mostrarMenuFurni(f, punto);
         else ocultarMenuFurni();
       },
-      alRotar: accionRotar
+      alRotar: accionRotar,
+      alMascota: abrirPanelMascota
     });
 
     refrescarHud();
@@ -440,6 +707,7 @@ var UI = (function () {
     cerrarPanel: cerrarPanel,
     ponerModo: ponerModo,
     empezarColocacion: empezarColocacion,
+    abrirPanelMascota: abrirPanelMascota,
     avisar: avisar
   };
 })();

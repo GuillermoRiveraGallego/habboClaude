@@ -10,7 +10,12 @@ var Sala = (function () {
 
   var GROSOR_PARED = 0.18;
   var ALTO_PARED = 2.4;
-  var VEL_AVATAR = 2.8; // casillas por segundo
+  var ALTO_SETO = 0.55;  // "pared" del jardín
+  var VEL_AVATAR = 2.8;  // casillas por segundo
+
+  function esJardin(s) { return !!(s && s.tipo === "jardin"); }
+
+  function altoParedDe(s) { return esJardin(s) ? ALTO_SETO : ALTO_PARED; }
 
   var PARES_SUELO = {
     beige: "crema", crema: "blanco", gris: "blanco", blanco: "crema",
@@ -237,6 +242,20 @@ var Sala = (function () {
 
   function actualizar(dt) {
     if (congelado) return;
+    // mascotas: sus estadísticas avanzan siempre; solo se
+    // mueven si el jardín es la sala cargada
+    if (window.Mascotas && sala) {
+      var ctxJardin = null;
+      if (esJardin(sala)) {
+        var bloqJ = rejillaBloqueo();
+        ctxJardin = {
+          ancho: sala.ancho,
+          fondo: sala.fondo,
+          libre: function (x, y) { return dentro(x, y) && !bloqJ[y][x]; }
+        };
+      }
+      Mascotas.tick(dt, ctxJardin);
+    }
     if (!camino.length) {
       if (avatar.pose === "andando") { avatar.pose = "parado"; avatar.fase = 0; }
       return;
@@ -289,6 +308,7 @@ var Sala = (function () {
   }
 
   function validarPared(id, pared, slot, uidIgnorar) {
+    if (esJardin(sala)) return false; // los setos no sujetan cuadros
     var len = (pared === "x") ? sala.ancho : sala.fondo;
     if (slot < 0 || slot >= len) return false;
     var f = furniPared(pared, slot);
@@ -299,8 +319,26 @@ var Sala = (function () {
 
   function manejarClickPasear(tx, ty) {
     if (!dentro(tx, ty)) return;
+    // mascotas del jardín: click → panel de la mascota
+    if (esJardin(sala) && window.Mascotas) {
+      var m = Mascotas.mascotaEn(tx, ty);
+      if (m && cbs.alMascota) {
+        var rt = Mascotas.runtimeDe(m.uid);
+        cbs.alMascota(m, puntoPantalla(rt.x, rt.y, 0.9));
+        return;
+      }
+    }
     var f = furniEn(tx, ty);
     if (f) {
+      // acuario/aviario habitado: abrir el panel de sus mascotas
+      if (esJardin(sala) && window.Mascotas &&
+          (f.id === "acuario" || f.id === "aviario")) {
+        var habs = Mascotas.habitantesDe(f.uid);
+        if (habs.length && cbs.alMascota) {
+          cbs.alMascota(habs[0], puntoDe(f));
+          return;
+        }
+      }
       var def = Furnis.get(f.id);
       if (def.sentable && f !== avatar.sentadoEn) sentarseEn(f, tx, ty);
       else if (!def.sentable) marcar(tx, ty, "rojo");
@@ -339,6 +377,12 @@ var Sala = (function () {
     }
     seleccion = f || null;
     if (cbs.alSeleccionar) cbs.alSeleccionar(seleccion, seleccion ? puntoDe(seleccion) : null);
+  }
+
+  // mundo → px CSS sobre el canvas (para posicionar paneles de la UI)
+  function puntoPantalla(x, y, z) {
+    var p = Iso.proyectar(x, y, z || 0);
+    return { x: p.x * escala + trasX, y: p.y * escala + trasY };
   }
 
   // punto de pantalla (px CSS sobre el canvas) de un furni, para la UI
@@ -409,18 +453,30 @@ var Sala = (function () {
     ctx.scale(escala, escala);
 
     var A = sala.ancho, F = sala.fondo, G = GROSOR_PARED;
+    var jardin = esJardin(sala);
+    var ahoraSeg = performance.now() / 1000;
 
-    // paredes, suelo y furnis de pared
-    Iso.cubo(ctx, -G, -G, 0, G, F + G, ALTO_PARED, sala.colorPared);
-    Iso.cubo(ctx, 0, -G, 0, A, G, ALTO_PARED, sala.colorPared);
-    sala.furnis.forEach(function (f) {
-      if (esPared(f)) Furnis.get(f.id).dibujarPared(ctx, f.pared, f.slot);
-    });
-    Iso.cubo(ctx, 0, 0, -0.22, A, F, 0.22, sala.colorSuelo);
-    var par = PARES_SUELO[sala.colorSuelo] || sala.colorSuelo;
-    for (var ty = 0; ty < F; ty++)
-      for (var tx = 0; tx < A; tx++)
-        Iso.plano(ctx, tx, ty, 0, 1, 1, ((tx + ty) % 2) ? par : sala.colorSuelo);
+    // paredes (o setos), suelo y furnis de pared
+    var altoP = altoParedDe(sala);
+    var colorP = jardin ? "verde_oscuro" : sala.colorPared;
+    Iso.cubo(ctx, -G, -G, 0, G, F + G, altoP, colorP);
+    Iso.cubo(ctx, 0, -G, 0, A, G, altoP, colorP);
+    if (!jardin) {
+      sala.furnis.forEach(function (f) {
+        if (esPared(f)) Furnis.get(f.id).dibujarPared(ctx, f.pared, f.slot);
+      });
+    }
+    Iso.cubo(ctx, 0, 0, -0.22, A, F, 0.22, jardin ? "marron" : sala.colorSuelo);
+    if (jardin) {
+      for (var gy = 0; gy < F; gy++)
+        for (var gx = 0; gx < A; gx++)
+          Iso.plano(ctx, gx, gy, 0, 1, 1, "verde"); // césped
+    } else {
+      var par = PARES_SUELO[sala.colorSuelo] || sala.colorSuelo;
+      for (var ty = 0; ty < F; ty++)
+        for (var tx = 0; tx < A; tx++)
+          Iso.plano(ctx, tx, ty, 0, 1, 1, ((tx + ty) % 2) ? par : sala.colorSuelo);
+    }
 
     // alfombras (capa entre suelo y furnis)
     sala.furnis.forEach(function (f) {
@@ -458,8 +514,12 @@ var Sala = (function () {
         x1: f.x + p[0], y1: f.y + p[1],
         z1: def.altura + (sentadoAqui ? 1.2 : 0)
       };
+      // hogares de mascotas: pájaros tras los barrotes (antes),
+      // peces delante del cristal (después)
+      var esHogar = jardin && window.Mascotas && (f.id === "acuario" || f.id === "aviario");
       caja.dibuja = function () {
         Iso.sombra(ctx, f.x, f.y, p[0], p[1]);
+        if (esHogar && f.id === "aviario") Mascotas.dibujarEnHogar(ctx, f, ahoraSeg);
         if (sentadoAqui && (f.rot === 2 || f.rot === 3)) {
           Avatar.dibujar(ctx, avatar);
           Furnis.dibujar(ctx, f.id, f.x, f.y, f.rot || 0);
@@ -467,6 +527,7 @@ var Sala = (function () {
           Furnis.dibujar(ctx, f.id, f.x, f.y, f.rot || 0);
           if (sentadoAqui) Avatar.dibujar(ctx, avatar);
         }
+        if (esHogar && f.id === "acuario") Mascotas.dibujarEnHogar(ctx, f, ahoraSeg);
       };
       cajas.push(caja);
     });
@@ -474,6 +535,16 @@ var Sala = (function () {
       var ca = Avatar.caja(avatar);
       ca.dibuja = function () { Avatar.dibujar(ctx, avatar); };
       cajas.push(ca);
+    }
+    // mascotas sueltas del jardín (perros y gatos)
+    if (jardin && window.Mascotas) {
+      Juego.mascotas().forEach(function (m) {
+        if (!Mascotas.esLibre(m.tipo)) return;
+        var cm = Mascotas.cajaSuelto(m);
+        if (!cm) return;
+        cm.dibuja = function () { Mascotas.dibujarSuelto(ctx, m, ahoraSeg); };
+        cajas.push(cm);
+      });
     }
     var ordenadas = Iso.ordenarCajas(cajas);
     for (var j = 0; j < ordenadas.length; j++) ordenadas[j].dibuja();
@@ -542,6 +613,7 @@ var Sala = (function () {
   }
 
   function paredDe(sx, sy) {
+    if (esJardin(sala)) return null; // el jardín no tiene paredes útiles
     // pared "x" (y = 0): u = sx/MX, z = (u*MY − sy)/MZ
     var u = sx / Iso.MX;
     var z = (u * Iso.MY - sy) / Iso.MZ;
@@ -626,11 +698,12 @@ var Sala = (function () {
     avatar.pose = "parado";
 
     // encuadre según el tamaño de la sala
+    var altoP = altoParedDe(sala);
     var anchoPx = (sala.ancho + sala.fondo) * Iso.MX + 60;
-    var altoPx = (sala.ancho + sala.fondo) * Iso.MY + ALTO_PARED * Iso.MZ + 60;
+    var altoPx = (sala.ancho + sala.fondo) * Iso.MY + altoP * Iso.MZ + 60;
     escala = Math.min(1.25, W / anchoPx, H / altoPx);
     var cxMundo = (sala.ancho - sala.fondo) / 2 * Iso.MX;
-    var syTop = -ALTO_PARED * Iso.MZ - GROSOR_PARED * 2 * Iso.MY;
+    var syTop = -altoP * Iso.MZ - GROSOR_PARED * 2 * Iso.MY;
     var syBot = (sala.ancho + sala.fondo) * Iso.MY + 0.22 * Iso.MZ;
     trasX = W / 2 - escala * cxMundo;
     trasY = H / 2 - escala * (syTop + syBot) / 2;
@@ -722,6 +795,7 @@ var Sala = (function () {
     validarPared: validarPared,
     levantarSiSentadoEn: levantarSiSentadoEn,
     puntoDe: puntoDe,
+    puntoPantalla: puntoPantalla,
     depurar: depurar
   };
 })();

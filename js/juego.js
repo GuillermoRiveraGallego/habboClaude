@@ -14,7 +14,7 @@ var Juego = (function () {
   function nuevaPartida() {
     return {
       version: 1,
-      creditos: 1000,
+      creditos: 11000,
       sigUid: 100,
       inventario: [],
       salaActual: 0,
@@ -41,8 +41,17 @@ var Juego = (function () {
           colorSuelo: "madera", colorPared: "morado",
           desbloqueada: false, precio: 1200,
           furnis: []
+        },
+        {
+          nombre: "El Jardín", ancho: 10, fondo: 10, tipo: "jardin",
+          colorSuelo: "verde", colorPared: "verde_oscuro",
+          desbloqueada: false, precio: 500,
+          furnis: []
         }
-      ]
+      ],
+      mascotas: [],
+      comida: { perro: 0, gato: 0, pez: 0, pajaro: 0 },
+      recompensas: { fuente: false, gnomo: false }
     };
   }
 
@@ -136,6 +145,49 @@ var Juego = (function () {
     cambio();
   }
 
+  // ---------------- mascotas (jardín) ----------------
+
+  function mascotas() { return estado.mascotas; }
+  function comida() { return estado.comida; }
+  function recompensas() { return estado.recompensas; }
+
+  function nuevaMascota(tipo, nombre, hogarUid) {
+    var m = {
+      uid: estado.sigUid++,
+      tipo: tipo,
+      nombre: nombre,
+      hambre: 80,
+      felicidad: 70,
+      energia: 80,
+      ultimaComida: Date.now(),
+      ultimoJuego: 0,
+      hogarUid: hogarUid || null
+    };
+    estado.mascotas.push(m);
+    cambio();
+    return m;
+  }
+
+  function agregarComida(tipo) {
+    estado.comida[tipo] = (estado.comida[tipo] || 0) + 1;
+    cambio();
+  }
+
+  function consumirComida(tipo) {
+    if (!estado.comida[tipo]) return false;
+    estado.comida[tipo]--;
+    cambio();
+    return true;
+  }
+
+  // Devuelve true solo la primera vez que se desbloquea
+  function desbloquearRecompensa(id) {
+    if (estado.recompensas[id]) return false;
+    estado.recompensas[id] = true;
+    cambio();
+    return true;
+  }
+
   return {
     iniciar: iniciar,
     creditos: creditos,
@@ -153,6 +205,13 @@ var Juego = (function () {
     cambiarSala: cambiarSala,
     desbloquearSala: desbloquearSala,
     cambiarColor: cambiarColor,
+    mascotas: mascotas,
+    comida: comida,
+    recompensas: recompensas,
+    nuevaMascota: nuevaMascota,
+    agregarComida: agregarComida,
+    consumirComida: consumirComida,
+    desbloquearRecompensa: desbloquearRecompensa,
     ponAlCambiar: function (fn) { alCambiar = fn; },
     estado: function () { return estado; }
   };

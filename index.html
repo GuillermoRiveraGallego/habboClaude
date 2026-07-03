@@ -24,6 +24,18 @@
       Click: colocar · <b>R</b>: rotar · <b>Esc</b> o click derecho: cancelar
     </div>
 
+    <div id="panel-mascota" class="oculto">
+      <div id="pm-cabecera">
+        <span id="pm-titulo"></span>
+        <button id="pm-cerrar">✕</button>
+      </div>
+      <div id="pm-barras"></div>
+      <div id="pm-acciones">
+        <button id="pm-alimentar" class="mini">🍖 Alimentar</button>
+        <button id="pm-jugar" class="mini">🎾 Jugar</button>
+      </div>
+    </div>
+
     <div id="avisos"></div>
   </div>
 
@@ -36,6 +48,7 @@
       <button data-panel="catalogo">🛒 Catálogo</button>
       <button data-panel="inventario">📦 Inventario</button>
       <button data-panel="salas">🚪 Salas</button>
+      <button data-panel="mascotas">🐾 Mascotas</button>
     </div>
   </div>
 
@@ -54,6 +67,7 @@
 <script src="js/furnis.js"></script>
 <script src="js/avatar.js"></script>
 <script src="js/juego.js"></script>
+<script src="js/mascotas.js"></script>
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
 <script>
@@ -137,6 +151,100 @@
       "white-space:pre;z-index:20;line-height:1.5";
     div.textContent = log.join("\n");
     document.getElementById("zona-canvas").appendChild(div);
+  }
+
+  // ---- pruebas del jardín y las mascotas ----
+
+  function montarJardin() {
+    Juego.ganar(3000);
+    Juego.desbloquearSala(3);
+    var j = Juego.salas()[3];
+    j.furnis.push({ uid: 60, id: "acuario", x: 6, y: 7, rot: 0 });
+    j.furnis.push({ uid: 61, id: "aviario", x: 8, y: 1, rot: 0 });
+    j.furnis.push({ uid: 62, id: "banco_madera", x: 0, y: 4, rot: 0 });
+    j.furnis.push({ uid: 63, id: "ficus", x: 9, y: 9, rot: 0 });
+    Juego.cambiarSala(3);
+    Sala.cargar(Juego.salaActual());
+    var perro = Juego.nuevaMascota("perro", "Toby", null);
+    var gato = Juego.nuevaMascota("gato", "Michi", null);
+    Juego.nuevaMascota("pez", "Nemo", 60);
+    Juego.nuevaMascota("pez", "Perla", 60);
+    Juego.nuevaMascota("pajaro", "Kiwi", 61);
+    Juego.agregarComida("perro");
+    Juego.agregarComida("gato");
+    return { perro: perro, gato: gato };
+  }
+
+  if (prueba === "jardin") {
+    montarJardin();
+  } else if (prueba === "jardin_triste") {
+    var ms = montarJardin();
+    Juego.mascotas().forEach(function (m) { m.felicidad = 15; m.hambre = 10; });
+    ms.perro.felicidad = 95; // uno contento para comparar
+  } else if (prueba === "mascota") {
+    var ms2 = montarJardin();
+    setTimeout(function () {
+      var rt = Mascotas.runtimeDe(ms2.perro.uid);
+      UI.abrirPanelMascota(ms2.perro, rt ? Sala.puntoPantalla(rt.x, rt.y, 0.9) : { x: 400, y: 300 });
+    }, 300);
+  } else if (prueba === "tienda") {
+    montarJardin();
+    UI.abrirPanel("mascotas", "tienda");
+  } else if (prueba === "panel_mascotas") {
+    montarJardin();
+    UI.abrirPanel("mascotas", "mias");
+  } else if (prueba === "jardin_flujo") {
+    var log2 = [];
+    function paso2(nombre, ok) { log2.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    paso2("comprar perro sin jardín = no", !Mascotas.puedeComprar("perro").ok);
+    Juego.ganar(3000);
+    paso2("desbloquear jardín", Juego.desbloquearSala(3));
+    paso2("perro comprable", Mascotas.puedeComprar("perro").ok);
+    var rp = Mascotas.comprar("perro", "Toby");
+    paso2("comprar perro", rp.ok && Juego.mascotas().length === 1);
+    paso2("pez sin acuario = no", !Mascotas.puedeComprar("pez").ok);
+    Juego.salas()[3].furnis.push({ uid: 60, id: "acuario", x: 6, y: 7, rot: 0 });
+    paso2("pez con acuario ok", Mascotas.puedeComprar("pez").ok);
+    var rz = Mascotas.comprar("pez", "Nemo");
+    paso2("pez asignado al acuario", rz.ok && rz.mascota.hogarUid === 60);
+    Mascotas.comprar("pez", "P2");
+    Mascotas.comprar("pez", "P3");
+    paso2("acuario lleno (3 peces) = no", !Mascotas.puedeComprar("pez").ok);
+
+    var toby = rp.mascota;
+    paso2("alimentar sin comida = no", !Mascotas.alimentar(toby).ok);
+    Juego.agregarComida("perro");
+    toby.hambre = 40;
+    var ra = Mascotas.alimentar(toby);
+    paso2("alimentar con comida (+45)", ra.ok && toby.hambre === 85 && Juego.comida().perro === 0);
+    toby.energia = 50;
+    toby.ultimoJuego = 0;
+    paso2("jugar (-20 energía)", Mascotas.jugar(toby).ok && toby.energia === 30);
+    paso2("jugar en cooldown = no", !Mascotas.jugar(toby).ok);
+    toby.felicidad = 20;
+    paso2("estado triste", Mascotas.estadoDe(toby) === "triste");
+    toby.felicidad = 90;
+    paso2("estado contento", Mascotas.estadoDe(toby) === "contento");
+
+    Juego.mascotas().forEach(function (m) { m.felicidad = 95; });
+    Mascotas.tick(0.016, null);
+    paso2("fuente desbloqueada (4 mascotas ≥80%)", Juego.recompensas().fuente === true);
+    paso2("gnomo aún no (hacen falta 5)", !Juego.recompensas().gnomo);
+    Juego.nuevaMascota("pajaro", "Kiwi", null);
+    Juego.mascotas().forEach(function (m) { m.felicidad = 95; });
+    Mascotas.tick(0.016, null);
+    paso2("gnomo desbloqueado con 5", Juego.recompensas().gnomo === true);
+
+    Juego.cambiarSala(3);
+    Sala.cargar(Juego.salaActual());
+
+    var div2 = document.createElement("div");
+    div2.style.cssText = "position:absolute;top:10px;left:10px;background:rgba(43,47,58,0.95);" +
+      "border:2px solid #565f75;border-radius:10px;padding:10px 14px;font-size:13px;" +
+      "white-space:pre;z-index:20;line-height:1.5";
+    div2.textContent = log2.join("\n");
+    document.getElementById("zona-canvas").appendChild(div2);
   }
 })();
 </script>
