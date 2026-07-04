@@ -1842,6 +1842,960 @@ var Furnis = (function () {
     },
   });
 
+  // ==========================================================
+  // AMPLIACIÓN 2 — cinco piezas más por categoría
+  // ==========================================================
+
+  // --- mesas ---
+
+  def({
+    id: "mesa_cristal", nombre: "Mesa de cristal", categoria: "mesas",
+    precio: 130, tam: [1, 1], altura: 0.9,
+    dibujar: function (p) {
+      patas4(p, 0.08, 0.08, 0.92, 0.92, 0.08, 0.8, "gris");
+      p.cubo(0, 0, 0.8, 1, 1, 0.08, "azul_claro");
+      p.cubo(0.1, 0.1, 0.88, 0.24, 0.1, 0.015, "blanco"); // brillo
+    },
+  });
+
+  def({
+    id: "mesita_noche", nombre: "Mesita de noche", categoria: "mesas",
+    precio: 55, tam: [1, 1], rotaciones: 4, altura: 0.7,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.12, 0, 0.1, 0.1, 0.14, "madera_oscura"); // patas
+      p.cubo(0.8, 0.12, 0, 0.1, 0.1, 0.14, "madera_oscura");
+      p.cubo(0.1, 0.78, 0, 0.1, 0.1, 0.14, "madera_oscura");
+      p.cubo(0.8, 0.78, 0, 0.1, 0.1, 0.14, "madera_oscura");
+      p.cubo(0.06, 0.08, 0.14, 0.88, 0.84, 0.48, "madera");
+      p.cubo(0.14, 0.9, 0.24, 0.72, 0.04, 0.28, "madera_oscura"); // cajón
+      p.cilindro(0.5, 0.95, 0.38, 0.04, 0.04, "amarillo");        // pomo
+      p.cubo(0, 0, 0.62, 1, 1, 0.08, "madera");
+    },
+  });
+
+  def({
+    id: "mesa_tv", nombre: "Mueble de tele", categoria: "mesas",
+    precio: 120, tam: [2, 1], rotaciones: 4, altura: 0.55,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.1, 0, 1.9, 0.8, 0.12, "madera_oscura");
+      p.cubo(0.05, 0.1, 0.12, 0.14, 0.8, 0.3, "madera_oscura"); // laterales
+      p.cubo(1.81, 0.1, 0.12, 0.14, 0.8, 0.3, "madera_oscura");
+      p.cubo(0.9, 0.1, 0.12, 0.14, 0.8, 0.3, "madera_oscura");  // divisor
+      p.cubo(0.3, 0.5, 0.16, 0.4, 0.3, 0.2, "gris_oscuro");     // cajas
+      p.cubo(1.15, 0.5, 0.16, 0.5, 0.3, 0.14, "azul");
+      p.cubo(0, 0.05, 0.42, 2, 0.9, 0.12, "madera");
+    },
+  });
+
+  def({
+    id: "mesa_picnic", nombre: "Mesa de pícnic", categoria: "mesas",
+    precio: 210, tam: [2, 2], rotaciones: 2, altura: 0.85,
+    dibujar: function (p) {
+      p.cubo(0.3, 0.45, 0, 0.14, 0.14, 0.72, "madera_oscura"); // patas
+      p.cubo(1.56, 0.45, 0, 0.14, 0.14, 0.72, "madera_oscura");
+      p.cubo(0.3, 1.4, 0, 0.14, 0.14, 0.72, "madera_oscura");
+      p.cubo(1.56, 1.4, 0, 0.14, 0.14, 0.72, "madera_oscura");
+      p.cubo(0.1, 0.55, 0.72, 1.8, 0.9, 0.12, "madera");   // tablero
+      p.cubo(0.15, 0.08, 0.36, 1.7, 0.3, 0.08, "madera");  // banco
+      p.cubo(0.15, 1.62, 0.36, 1.7, 0.3, 0.08, "madera");  // banco
+      p.cilindro(1.0, 1.0, 0.84, 0.12, 0.12, "rojo");      // cesta
+    },
+  });
+
+  def({
+    id: "mesa_dibujo", nombre: "Mesa de dibujo", categoria: "mesas",
+    precio: 145, tam: [2, 1], rotaciones: 4, altura: 1.0,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.12, 0, 0.12, 0.76, 0.8, "gris_oscuro"); // caballetes
+      p.cubo(1.78, 0.12, 0, 0.12, 0.76, 0.8, "gris_oscuro");
+      p.cubo(0.05, 0.05, 0.8, 1.9, 0.9, 0.1, "madera");
+      p.cubo(0.35, 0.2, 0.9, 0.9, 0.6, 0.02, "blanco");    // plano
+      p.cubo(0.5, 0.35, 0.92, 0.5, 0.06, 0.01, "azul");    // trazos
+      p.cubo(0.5, 0.5, 0.92, 0.34, 0.06, 0.01, "rojo");
+      p.cilindro(1.55, 0.35, 0.9, 0.06, 0.14, "gris");     // bote lápices
+    },
+  });
+
+  // --- sillas ---
+
+  def({
+    id: "silla_playa", nombre: "Silla de playa", categoria: "sillas",
+    precio: 60, tam: [1, 1], rotaciones: 4, altura: 1.0,
+    sentable: "sentado", alturaAsiento: 0.35,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.12, 0, 0.7, 0.08, 0.35, "madera");    // marco
+      p.cubo(0.15, 0.8, 0, 0.7, 0.08, 0.35, "madera");
+      p.cubo(0.2, 0.12, 0.3, 0.62, 0.76, 0.06, "rojo");    // tela asiento
+      p.cubo(0.2, 0.3, 0.32, 0.62, 0.18, 0.06, "blanco");  // raya
+      p.cubo(0.12, 0.12, 0.36, 0.12, 0.76, 0.55, "rojo");  // respaldo
+      p.cubo(0.12, 0.36, 0.4, 0.11, 0.28, 0.51, "blanco");
+    },
+  });
+
+  def({
+    id: "trono", nombre: "Trono dorado", categoria: "sillas",
+    precio: 950, tam: [1, 1], rotaciones: 4, altura: 1.9,
+    sentable: "sentado", alturaAsiento: 0.6,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.05, 0, 0.9, 0.9, 0.3, "amarillo");     // base
+      p.cubo(0.1, 0.1, 0.3, 0.8, 0.8, 0.25, "rojo");        // asiento
+      p.cubo(0.02, 0.05, 0.55, 0.16, 0.9, 1.25, "amarillo"); // respaldo
+      p.cubo(0.14, 0.15, 0.7, 0.06, 0.7, 0.9, "rojo");      // tapizado
+      p.cilindro(0.1, 0.1, 1.8, 0.08, 0.14, "amarillo");    // remates
+      p.cilindro(0.1, 0.9, 1.8, 0.08, 0.14, "amarillo");
+      p.cubo(0.2, 0.02, 0.55, 0.6, 0.12, 0.22, "amarillo"); // brazos
+      p.cubo(0.2, 0.86, 0.55, 0.6, 0.12, 0.22, "amarillo");
+    },
+  });
+
+  def({
+    id: "puf_pera", nombre: "Puf pera", categoria: "sillas",
+    precio: 65, tam: [1, 1], rotaciones: 4, altura: 0.7,
+    sentable: "sentado", alturaAsiento: 0.32,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.42, 0.3, "rosa");
+      p.cilindro(0.5, 0.5, 0.3, 0.32, 0.2, "rosa");
+      p.cilindro(0.5, 0.5, 0.5, 0.18, 0.12, "morado");
+    },
+  });
+
+  def({
+    id: "banqueta_piano", nombre: "Banqueta de piano", categoria: "sillas",
+    precio: 50, tam: [1, 1], rotaciones: 4, altura: 0.55,
+    sentable: "sentado", alturaAsiento: 0.5,
+    dibujar: function (p) {
+      p.cubo(0.2, 0.25, 0, 0.09, 0.09, 0.45, "negro");
+      p.cubo(0.71, 0.25, 0, 0.09, 0.09, 0.45, "negro");
+      p.cubo(0.2, 0.66, 0, 0.09, 0.09, 0.45, "negro");
+      p.cubo(0.71, 0.66, 0, 0.09, 0.09, 0.45, "negro");
+      p.cubo(0.12, 0.18, 0.45, 0.76, 0.64, 0.1, "negro");
+      p.cubo(0.16, 0.22, 0.55, 0.68, 0.56, 0.06, "crema"); // acolchado
+    },
+  });
+
+  def({
+    id: "silla_gamer", nombre: "Silla gamer", categoria: "sillas",
+    precio: 240, tam: [1, 1], rotaciones: 4, altura: 1.5,
+    sentable: "sentado", alturaAsiento: 0.52,
+    dibujar: function (p) {
+      p.cubo(0.2, 0.44, 0, 0.6, 0.12, 0.06, "gris_oscuro"); // cruceta
+      p.cubo(0.44, 0.2, 0, 0.12, 0.6, 0.06, "gris_oscuro");
+      p.cilindro(0.5, 0.5, 0.06, 0.06, 0.34, "gris");       // pistón
+      p.cubo(0.14, 0.14, 0.4, 0.72, 0.72, 0.14, "negro");   // asiento
+      p.cubo(0.2, 0.2, 0.47, 0.6, 0.6, 0.08, "rojo");
+      p.cubo(0.08, 0.1, 0.54, 0.14, 0.8, 0.95, "negro");    // respaldo
+      p.cubo(0.2, 0.3, 0.6, 0.04, 0.4, 0.8, "rojo");        // franja
+      p.cubo(0.3, 0.02, 0.72, 0.4, 0.1, 0.08, "negro");     // reposabrazos
+      p.cubo(0.3, 0.88, 0.72, 0.4, 0.1, 0.08, "negro");
+    },
+  });
+
+  // --- camas ---
+
+  def({
+    id: "cama_infantil", nombre: "Cama infantil", categoria: "camas",
+    precio: 150, tam: [2, 1], rotaciones: 2, altura: 0.85,
+    sentable: "tumbado", alturaAsiento: 0.4,
+    dibujar: function (p) {
+      p.cubo(0, 0, 0, 0.12, 1, 0.8, "amarillo");           // cabecero
+      p.cubo(0.12, 0, 0, 1.82, 1, 0.22, "amarillo");
+      p.cubo(1.94, 0, 0, 0.06, 1, 0.5, "amarillo");        // piecero
+      p.cubo(0.16, 0.04, 0.22, 1.76, 0.92, 0.16, "blanco");
+      p.cubo(0.22, 0.16, 0.38, 0.4, 0.68, 0.1, "crema");   // almohada
+      p.cubo(0.72, 0.02, 0.26, 1.2, 0.96, 0.16, "turquesa"); // manta
+      p.cubo(0.2, 0.9, 0.38, 1.0, 0.08, 0.24, "amarillo"); // barandilla
+    },
+  });
+
+  def({
+    id: "futon", nombre: "Futón", categoria: "camas",
+    precio: 110, tam: [2, 1], rotaciones: 2, altura: 0.5,
+    sentable: "tumbado", alturaAsiento: 0.28,
+    dibujar: function (p) {
+      p.cubo(0, 0, 0, 2, 1, 0.1, "madera_oscura");
+      p.cubo(0.05, 0.04, 0.1, 1.9, 0.92, 0.16, "blanco");
+      p.cubo(0.12, 0.14, 0.26, 0.38, 0.72, 0.1, "crema");  // almohada
+      p.cubo(0.65, 0.02, 0.14, 1.28, 0.96, 0.14, "verde"); // manta
+    },
+  });
+
+  def({
+    id: "cama_dosel", nombre: "Cama con dosel", categoria: "camas",
+    precio: 520, tam: [2, 2], rotaciones: 2, altura: 2.2,
+    sentable: "tumbado", alturaAsiento: 0.46,
+    dibujar: function (p) {
+      p.cubo(0.02, 0.02, 0, 0.12, 0.12, 2.05, "madera_oscura"); // postes
+      p.cubo(1.86, 0.02, 0, 0.12, 0.12, 2.05, "madera_oscura");
+      p.cubo(0.02, 1.86, 0, 0.12, 0.12, 2.05, "madera_oscura");
+      p.cubo(1.86, 1.86, 0, 0.12, 0.12, 2.05, "madera_oscura");
+      p.cubo(0, 0, 0, 0.12, 2, 0.9, "madera_oscura");      // cabecero
+      p.cubo(0.12, 0.05, 0, 1.82, 1.9, 0.25, "madera");
+      p.cubo(0.16, 0.1, 0.25, 1.76, 1.8, 0.18, "blanco");
+      p.cubo(0.24, 0.25, 0.43, 0.42, 0.6, 0.12, "crema");  // almohadas
+      p.cubo(0.24, 1.15, 0.43, 0.42, 0.6, 0.12, "crema");
+      p.cubo(0.8, 0.07, 0.3, 1.14, 1.86, 0.16, "rosa");    // manta
+      p.cubo(0, 0, 2.05, 2, 2, 0.1, "rosa");               // techo de tela
+    },
+  });
+
+  def({
+    id: "saco_dormir", nombre: "Saco de dormir", categoria: "camas",
+    precio: 40, tam: [2, 1], rotaciones: 2, altura: 0.3,
+    sentable: "tumbado", alturaAsiento: 0.15,
+    dibujar: function (p) {
+      p.cubo(0.08, 0.2, 0, 1.84, 0.6, 0.16, "verde_oscuro");
+      p.cubo(0.14, 0.26, 0.16, 0.5, 0.48, 0.05, "verde"); // abertura
+      p.cubo(0.16, 0.3, 0.16, 0.34, 0.4, 0.09, "crema");  // almohadilla
+    },
+  });
+
+  def({
+    id: "cuna", nombre: "Cuna", categoria: "camas",
+    precio: 130, tam: [1, 1], rotaciones: 4, altura: 0.95,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.1, 0, 0.08, 0.08, 0.85, "madera");     // esquinas
+      p.cubo(0.82, 0.1, 0, 0.08, 0.08, 0.85, "madera");
+      p.cubo(0.1, 0.82, 0, 0.08, 0.08, 0.85, "madera");
+      p.cubo(0.82, 0.82, 0, 0.08, 0.08, 0.85, "madera");
+      p.cubo(0.12, 0.12, 0.25, 0.76, 0.76, 0.12, "blanco"); // colchón
+      p.cubo(0.3, 0.3, 0.37, 0.4, 0.4, 0.08, "rosa");       // mantita
+      p.cubo(0.1, 0.14, 0.55, 0.06, 0.72, 0.06, "madera");  // barrotes guía
+      p.cubo(0.84, 0.14, 0.55, 0.06, 0.72, 0.06, "madera");
+      p.cubo(0.1, 0.1, 0.78, 0.8, 0.06, 0.07, "madera");
+      p.cubo(0.1, 0.84, 0.78, 0.8, 0.06, 0.07, "madera");
+    },
+  });
+
+  // --- sofás ---
+
+  def({
+    id: "sofa_esquinero", nombre: "Sofá esquinero", categoria: "sofas",
+    precio: 380, tam: [2, 2], rotaciones: 4, altura: 1.0,
+    sentable: "sentado", alturaAsiento: 0.5,
+    dibujar: function (p) {
+      p.cubo(0, 0, 0, 2, 0.9, 0.42, "turquesa");           // tramo largo
+      p.cubo(0, 0.9, 0, 0.9, 1.1, 0.42, "turquesa");       // tramo corto
+      p.cubo(0, 0, 0.42, 0.22, 2, 0.5, "turquesa");        // respaldo y
+      p.cubo(0.22, 0, 0.42, 1.78, 0.2, 0.5, "turquesa");   // respaldo x
+      p.cubo(0.3, 0.24, 0.42, 0.72, 0.6, 0.1, "crema");    // cojines
+      p.cubo(1.1, 0.24, 0.42, 0.72, 0.6, 0.1, "crema");
+      p.cubo(0.26, 0.95, 0.42, 0.6, 0.8, 0.1, "crema");
+    },
+  });
+
+  def({
+    id: "sofa_chester", nombre: "Sofá chester", categoria: "sofas",
+    precio: 340, tam: [1, 2], rotaciones: 4, altura: 1.05,
+    sentable: "sentado", alturaAsiento: 0.5,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.02, 0, 0.12, 0.12, 0.14, "madera_oscura"); // patas
+      p.cubo(0.05, 1.86, 0, 0.12, 0.12, 0.14, "madera_oscura");
+      p.cubo(0, 0, 0.14, 1, 2, 0.32, "marron");
+      p.cubo(0, 0, 0.46, 0.24, 2, 0.55, "marron");         // respaldo
+      p.cubo(0.24, 0, 0.46, 0.76, 0.16, 0.4, "marron");    // brazos
+      p.cubo(0.24, 1.84, 0.46, 0.76, 0.16, 0.4, "marron");
+      p.cubo(0.28, 0.2, 0.46, 0.64, 0.76, 0.1, "madera");  // cojines
+      p.cubo(0.28, 1.04, 0.46, 0.64, 0.76, 0.1, "madera");
+      p.cilindro(0.24, 0.5, 0.8, 0.03, 0.03, "amarillo");  // botones
+      p.cilindro(0.24, 1.0, 0.8, 0.03, 0.03, "amarillo");
+      p.cilindro(0.24, 1.5, 0.8, 0.03, 0.03, "amarillo");
+    },
+  });
+
+  def({
+    id: "sillon_orejero", nombre: "Sillón orejero", categoria: "sofas",
+    precio: 180, tam: [1, 1], rotaciones: 4, altura: 1.45,
+    sentable: "sentado", alturaAsiento: 0.5,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.08, 0, 0.1, 0.1, 0.12, "madera_oscura");
+      p.cubo(0.1, 0.82, 0, 0.1, 0.1, 0.12, "madera_oscura");
+      p.cubo(0, 0, 0.12, 1, 1, 0.32, "azul");
+      p.cubo(0, 0.02, 0.44, 0.24, 0.96, 0.95, "azul");     // respaldo alto
+      p.cubo(0.1, 0, 1.1, 0.22, 0.2, 0.3, "azul");         // orejas
+      p.cubo(0.1, 0.8, 1.1, 0.22, 0.2, 0.3, "azul");
+      p.cubo(0.24, 0, 0.44, 0.72, 0.16, 0.34, "azul");     // brazos
+      p.cubo(0.24, 0.84, 0.44, 0.72, 0.16, 0.34, "azul");
+      p.cubo(0.28, 0.2, 0.44, 0.64, 0.6, 0.1, "azul_claro"); // cojín
+    },
+  });
+
+  def({
+    id: "banco_acolchado", nombre: "Banco acolchado", categoria: "sofas",
+    precio: 120, tam: [1, 2], rotaciones: 4, altura: 0.55,
+    sentable: "sentado", alturaAsiento: 0.45,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.1, 0, 0.12, 0.12, 0.3, "madera_oscura");
+      p.cubo(0.73, 0.1, 0, 0.12, 0.12, 0.3, "madera_oscura");
+      p.cubo(0.15, 1.78, 0, 0.12, 0.12, 0.3, "madera_oscura");
+      p.cubo(0.73, 1.78, 0, 0.12, 0.12, 0.3, "madera_oscura");
+      p.cubo(0.05, 0.02, 0.3, 0.9, 1.96, 0.12, "rosa");
+      p.cubo(0.1, 0.08, 0.42, 0.8, 0.84, 0.08, "rosa");    // acolchado
+      p.cubo(0.1, 1.04, 0.42, 0.8, 0.84, 0.08, "rosa");
+    },
+  });
+
+  def({
+    id: "divan", nombre: "Diván", categoria: "sofas",
+    precio: 290, tam: [2, 1], rotaciones: 2, altura: 0.95,
+    sentable: "tumbado", alturaAsiento: 0.42,
+    dibujar: function (p) {
+      p.cubo(0.08, 0.1, 0, 0.1, 0.1, 0.16, "amarillo");    // patas
+      p.cubo(1.8, 0.1, 0, 0.1, 0.1, 0.16, "amarillo");
+      p.cubo(0.08, 0.8, 0, 0.1, 0.1, 0.16, "amarillo");
+      p.cubo(1.8, 0.8, 0, 0.1, 0.1, 0.16, "amarillo");
+      p.cubo(0, 0, 0.16, 2, 1, 0.26, "rojo");
+      p.cubo(0, 0, 0.42, 0.3, 1, 0.4, "rojo");             // cabecera curvada
+      p.cubo(0.3, 0, 0.42, 0.14, 1, 0.2, "rojo");
+      p.cubo(0.34, 0.2, 0.42, 0.4, 0.6, 0.1, "naranja");   // cojín
+    },
+  });
+
+  // --- alfombras ---
+
+  alfombra("alfombra_morada", "Alfombra morada", 70, [2, 2], [
+    [0, 0, 2, 2, "morado"],
+    [0.18, 0.18, 1.64, 1.64, "rosa"],
+    [0.5, 0.5, 1.0, 1.0, "morado"],
+  ]);
+
+  alfombra("alfombra_camino", "Alfombra de pasillo", 60, [3, 1], [
+    [0, 0, 3, 1, "rojo"],
+    [0.1, 0.1, 0.25, 0.8, "amarillo"],
+    [2.65, 0.1, 0.25, 0.8, "amarillo"],
+    [0.55, 0.15, 1.9, 0.7, "naranja"],
+  ]);
+
+  alfombra("alfombra_ajedrez", "Alfombra de ajedrez", 90, [2, 2], [
+    [0, 0, 2, 2, "negro"],
+    [0.5, 0, 0.5, 0.5, "blanco"],
+    [1.5, 0, 0.5, 0.5, "blanco"],
+    [0, 0.5, 0.5, 0.5, "blanco"],
+    [1, 0.5, 0.5, 0.5, "blanco"],
+    [0.5, 1, 0.5, 0.5, "blanco"],
+    [1.5, 1, 0.5, 0.5, "blanco"],
+    [0, 1.5, 0.5, 0.5, "blanco"],
+    [1, 1.5, 0.5, 0.5, "blanco"],
+  ]);
+
+  alfombra("alfombra_arcoiris", "Alfombra arcoíris", 95, [2, 2], [
+    [0, 0, 2, 0.5, "rojo"],
+    [0, 0.5, 2, 0.5, "amarillo"],
+    [0, 1, 2, 0.5, "verde"],
+    [0, 1.5, 2, 0.5, "azul"],
+  ]);
+
+  alfombra("alfombra_infantil", "Alfombra infantil", 65, [2, 2], [
+    [0, 0, 2, 2, "azul_claro"],
+    [0.55, 0.55, 0.9, 0.9, "amarillo"],
+    [0.12, 0.12, 0.3, 0.3, "rojo"],
+    [1.58, 0.12, 0.3, 0.3, "verde"],
+    [0.12, 1.58, 0.3, 0.3, "rosa"],
+    [1.58, 1.58, 0.3, 0.3, "naranja"],
+  ]);
+
+  // --- plantas ---
+
+  def({
+    id: "rosal", nombre: "Rosal en maceta", categoria: "plantas",
+    precio: 55, tam: [1, 1], altura: 1.0,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.24, 0.26, "naranja");
+      p.cubo(0.24, 0.24, 0.26, 0.52, 0.52, 0.4, "verde_oscuro"); // mata
+      p.cubo(0.3, 0.3, 0.66, 0.4, 0.4, 0.14, "verde");
+      p.cilindro(0.32, 0.38, 0.74, 0.07, 0.1, "rojo");     // rosas
+      p.cilindro(0.62, 0.32, 0.78, 0.07, 0.1, "rojo");
+      p.cilindro(0.52, 0.62, 0.72, 0.07, 0.1, "rosa");
+    },
+  });
+
+  def({
+    id: "lavanda", nombre: "Lavanda", categoria: "plantas",
+    precio: 40, tam: [1, 1], altura: 0.95,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.22, 0.24, "gris");
+      p.cilindro(0.36, 0.42, 0.24, 0.025, 0.4, "verde");   // tallos
+      p.cilindro(0.55, 0.36, 0.24, 0.025, 0.48, "verde");
+      p.cilindro(0.62, 0.58, 0.24, 0.025, 0.36, "verde");
+      p.cilindro(0.36, 0.42, 0.64, 0.045, 0.18, "morado"); // espigas
+      p.cilindro(0.55, 0.36, 0.72, 0.045, 0.18, "morado");
+      p.cilindro(0.62, 0.58, 0.6, 0.045, 0.18, "morado");
+    },
+  });
+
+  def({
+    id: "hiedra", nombre: "Hiedra en pedestal", categoria: "plantas",
+    precio: 70, tam: [1, 1], altura: 1.3,
+    dibujar: function (p) {
+      p.cubo(0.3, 0.3, 0, 0.4, 0.4, 0.75, "crema");        // pedestal
+      p.cilindro(0.5, 0.5, 0.75, 0.2, 0.18, "madera");     // maceta
+      p.cubo(0.3, 0.3, 0.93, 0.4, 0.4, 0.18, "verde");     // mata
+      p.cubo(0.62, 0.42, 0.55, 0.14, 0.14, 0.4, "verde");  // guías colgando
+      p.cubo(0.42, 0.64, 0.35, 0.12, 0.12, 0.6, "verde_oscuro");
+      p.cubo(0.68, 0.6, 0.75, 0.12, 0.12, 0.2, "verde_oscuro");
+    },
+  });
+
+  def({
+    id: "limonero", nombre: "Limonero", categoria: "plantas",
+    precio: 140, tam: [1, 1], altura: 1.9,
+    bloquea: true,
+    dibujar: function (p) {
+      p.cubo(0.22, 0.22, 0, 0.56, 0.56, 0.3, "madera_oscura"); // maceta
+      p.cilindro(0.5, 0.5, 0.3, 0.07, 0.6, "madera");
+      p.cubo(0.16, 0.16, 0.9, 0.68, 0.68, 0.55, "verde");  // copa
+      p.cubo(0.28, 0.28, 1.45, 0.44, 0.44, 0.22, "verde_oscuro");
+      p.cilindro(0.3, 0.4, 1.1, 0.06, 0.1, "amarillo");    // limones
+      p.cilindro(0.66, 0.3, 1.25, 0.06, 0.1, "amarillo");
+      p.cilindro(0.55, 0.68, 1.0, 0.06, 0.1, "amarillo");
+    },
+  });
+
+  def({
+    id: "planta_carnivora", nombre: "Planta carnívora", categoria: "plantas",
+    precio: 85, tam: [1, 1], altura: 1.1,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.24, 0.26, "morado");
+      p.cilindro(0.5, 0.5, 0.26, 0.05, 0.45, "verde_oscuro"); // tallo
+      p.cubo(0.32, 0.34, 0.71, 0.36, 0.32, 0.18, "rojo");  // boca abajo
+      p.cubo(0.32, 0.34, 0.97, 0.36, 0.32, 0.14, "rojo");  // boca arriba
+      p.cubo(0.6, 0.38, 0.89, 0.07, 0.06, 0.08, "blanco"); // dientes
+      p.cubo(0.6, 0.54, 0.89, 0.07, 0.06, 0.08, "blanco");
+      p.cubo(0.26, 0.6, 0.3, 0.16, 0.16, 0.1, "verde");    // hojas base
+      p.cubo(0.6, 0.24, 0.3, 0.16, 0.16, 0.1, "verde");
+    },
+  });
+
+  // --- piscinas ---
+
+  def({
+    id: "flotador", nombre: "Flotador dónut", categoria: "piscinas",
+    precio: 45, tam: [1, 1], altura: 0.25,
+    bloquea: false,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.4, 0.2, "rosa");
+      p.cilindro(0.5, 0.5, 0.2, 0.18, 0.02, "azul_claro"); // agujero
+      p.cubo(0.14, 0.42, 0.14, 0.14, 0.16, 0.08, "blanco"); // topping
+      p.cubo(0.62, 0.24, 0.16, 0.14, 0.16, 0.07, "blanco");
+    },
+  });
+
+  def({
+    id: "sombrilla", nombre: "Sombrilla", categoria: "piscinas",
+    precio: 110, tam: [1, 1], altura: 2.1,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.24, 0.1, "gris");          // base
+      p.cilindro(0.5, 0.5, 0.1, 0.045, 1.45, "madera");    // mástil
+      p.cilindro(0.5, 0.5, 1.4, 0.62, 0.14, "rojo");       // copa
+      p.cilindro(0.5, 0.5, 1.54, 0.46, 0.12, "blanco");
+      p.cilindro(0.5, 0.5, 1.66, 0.3, 0.12, "rojo");
+      p.cilindro(0.5, 0.5, 1.78, 0.1, 0.14, "blanco");     // remate
+    },
+  });
+
+  def({
+    id: "ducha_piscina", nombre: "Ducha de piscina", categoria: "piscinas",
+    precio: 130, tam: [1, 1], altura: 2.1,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.4, 0.08, "azul_claro");    // plato
+      p.cilindro(0.62, 0.5, 0.08, 0.05, 1.8, "gris");      // poste
+      p.cubo(0.3, 0.46, 1.82, 0.38, 0.08, 0.07, "gris");   // brazo
+      p.cilindro(0.34, 0.5, 1.72, 0.11, 0.08, "gris");     // alcachofa
+      p.cilindro(0.34, 0.5, 0.2, 0.035, 1.52, "azul_claro"); // chorro
+    },
+  });
+
+  def({
+    id: "trampolin", nombre: "Trampolín", categoria: "piscinas",
+    precio: 160, tam: [1, 1], rotaciones: 4, altura: 0.85,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.3, 0, 0.25, 0.4, 0.6, "gris");        // soporte
+      p.cubo(0.05, 0.35, 0.6, 0.9, 0.3, 0.1, "azul");     // tabla
+      p.cubo(0.75, 0.38, 0.7, 0.16, 0.24, 0.02, "blanco"); // punta
+    },
+  });
+
+  def({
+    id: "silla_socorrista", nombre: "Silla de socorrista", categoria: "piscinas",
+    precio: 280, tam: [1, 1], rotaciones: 4, altura: 1.9,
+    sentable: "sentado", alturaAsiento: 0.95,
+    dibujar: function (p) {
+      p.cubo(0.12, 0.12, 0, 0.1, 0.1, 0.95, "blanco");     // patas
+      p.cubo(0.78, 0.12, 0, 0.1, 0.1, 0.95, "blanco");
+      p.cubo(0.12, 0.78, 0, 0.1, 0.1, 0.95, "blanco");
+      p.cubo(0.78, 0.78, 0, 0.1, 0.1, 0.95, "blanco");
+      p.cubo(0.1, 0.1, 0.95, 0.8, 0.8, 0.1, "madera");     // plataforma
+      p.cubo(0.1, 0.12, 1.05, 0.12, 0.76, 0.6, "blanco");  // respaldo
+      p.cubo(0.16, 0.3, 1.2, 0.05, 0.4, 0.3, "rojo");      // cruz roja
+      p.cubo(0.5, 0.85, 0.2, 0.14, 0.06, 0.75, "madera");  // escalera
+      p.cubo(0.36, 0.85, 0.35, 0.42, 0.05, 0.06, "madera");
+      p.cubo(0.36, 0.85, 0.65, 0.42, 0.05, 0.06, "madera");
+    },
+  });
+
+  // --- almacenaje ---
+
+  def({
+    id: "zapatero", nombre: "Zapatero", categoria: "almacenaje",
+    precio: 95, tam: [1, 1], rotaciones: 4, altura: 0.95,
+    dibujar: function (p) {
+      p.cubo(0.08, 0.15, 0, 0.84, 0.7, 0.85, "crema");
+      p.cubo(0.08, 0.86, 0.12, 0.84, 0.05, 0.05, "madera"); // listones
+      p.cubo(0.08, 0.86, 0.42, 0.84, 0.05, 0.05, "madera");
+      p.cubo(0.2, 0.88, 0.18, 0.2, 0.1, 0.1, "rojo");       // zapatos
+      p.cubo(0.55, 0.88, 0.18, 0.2, 0.1, 0.1, "azul");
+      p.cubo(0.35, 0.88, 0.48, 0.2, 0.1, 0.1, "verde");
+      p.cubo(0.05, 0.12, 0.85, 0.9, 0.76, 0.08, "madera");  // tapa
+    },
+  });
+
+  def({
+    id: "perchero", nombre: "Perchero de pie", categoria: "almacenaje",
+    precio: 60, tam: [1, 1], altura: 1.9,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.26, 0.06, "madera_oscura");
+      p.cilindro(0.5, 0.5, 0.06, 0.05, 1.7, "madera");
+      p.cubo(0.28, 0.46, 1.6, 0.5, 0.08, 0.07, "madera_oscura"); // brazos
+      p.cubo(0.46, 0.28, 1.68, 0.08, 0.5, 0.07, "madera_oscura");
+      p.cubo(0.6, 0.42, 1.05, 0.26, 0.18, 0.55, "rojo");   // abrigo
+      p.cilindro(0.5, 0.5, 1.76, 0.14, 0.1, "verde");      // sombrero
+    },
+  });
+
+  def({
+    id: "archivador", nombre: "Archivador metálico", categoria: "almacenaje",
+    precio: 110, tam: [1, 1], rotaciones: 4, altura: 1.3,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.15, 0, 0.7, 0.7, 1.2, "gris");
+      p.cubo(0.86, 0.2, 0.15, 0.04, 0.6, 0.28, "gris_oscuro"); // cajones
+      p.cubo(0.86, 0.2, 0.5, 0.04, 0.6, 0.28, "gris_oscuro");
+      p.cubo(0.86, 0.2, 0.85, 0.04, 0.6, 0.28, "gris_oscuro");
+      p.cubo(0.88, 0.42, 0.26, 0.04, 0.16, 0.04, "blanco");    // tiradores
+      p.cubo(0.88, 0.42, 0.61, 0.04, 0.16, 0.04, "blanco");
+      p.cubo(0.88, 0.42, 0.96, 0.04, 0.16, 0.04, "blanco");
+    },
+  });
+
+  def({
+    id: "cesto_ropa", nombre: "Cesto de ropa", categoria: "almacenaje",
+    precio: 45, tam: [1, 1], altura: 0.75,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.3, 0.55, "beige");
+      p.cilindro(0.5, 0.5, 0.55, 0.32, 0.06, "madera");    // borde
+      p.cubo(0.32, 0.36, 0.61, 0.22, 0.2, 0.1, "rosa");    // ropa asomando
+      p.cubo(0.52, 0.42, 0.61, 0.2, 0.18, 0.07, "azul_claro");
+    },
+  });
+
+  def({
+    id: "botellero", nombre: "Botellero", categoria: "almacenaje",
+    precio: 105, tam: [1, 1], rotaciones: 4, altura: 1.1,
+    dibujar: function (p) {
+      p.cubo(0.2, 0.15, 0, 0.6, 0.7, 0.1, "madera_oscura");
+      p.cubo(0.2, 0.15, 0.1, 0.08, 0.7, 0.9, "madera_oscura"); // laterales
+      p.cubo(0.72, 0.15, 0.1, 0.08, 0.7, 0.9, "madera_oscura");
+      p.cubo(0.28, 0.15, 0.5, 0.44, 0.7, 0.07, "madera");      // balda
+      p.cilindro(0.4, 0.5, 0.12, 0.07, 0.36, "verde");     // botellas
+      p.cilindro(0.58, 0.5, 0.12, 0.07, 0.36, "verde_oscuro");
+      p.cilindro(0.4, 0.5, 0.59, 0.07, 0.36, "azul");
+      p.cilindro(0.58, 0.5, 0.59, 0.07, 0.36, "rojo");
+    },
+  });
+
+  // --- electro ---
+
+  def({
+    id: "microondas", nombre: "Microondas", categoria: "electro",
+    precio: 95, tam: [1, 1], rotaciones: 4, altura: 0.95,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.15, 0, 0.7, 0.7, 0.55, "madera");     // mueblecito
+      p.cubo(0.1, 0.1, 0.55, 0.8, 0.8, 0.06, "madera_oscura");
+      p.cubo(0.18, 0.2, 0.61, 0.64, 0.6, 0.32, "blanco");  // micro
+      p.cubo(0.82, 0.26, 0.65, 0.03, 0.36, 0.24, "negro"); // puerta
+      p.cubo(0.82, 0.66, 0.68, 0.03, 0.08, 0.18, "gris");  // panel
+    },
+  });
+
+  def({
+    id: "tele_grande", nombre: "Tele de cine", categoria: "electro",
+    precio: 420, tam: [2, 1], rotaciones: 4, altura: 1.5,
+    luz: { x: 1, y: 0.5, z: 0.9, radio: 46, color: [147, 186, 219] },
+    dibujar: function (p) {
+      p.cubo(0.3, 0.3, 0, 1.4, 0.4, 0.16, "gris_oscuro");  // peana
+      p.cubo(0.9, 0.4, 0.16, 0.2, 0.2, 0.2, "gris_oscuro");
+      p.cubo(0.1, 0.4, 0.36, 1.8, 0.14, 1.05, "negro");    // tele
+      p.cubo(0.18, 0.54, 0.44, 1.64, 0.03, 0.89, "azul_claro"); // pantalla
+      p.cubo(0.4, 0.57, 0.65, 0.5, 0.015, 0.4, "blanco");  // brillo
+    },
+  });
+
+  def({
+    id: "robot_aspirador", nombre: "Robot aspirador", categoria: "electro",
+    precio: 150, tam: [1, 1], altura: 0.14,
+    bloquea: false,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.34, 0.1, "gris_oscuro");
+      p.cilindro(0.5, 0.5, 0.1, 0.08, 0.03, "turquesa");   // botón
+      p.cubo(0.7, 0.44, 0.04, 0.1, 0.12, 0.04, "negro");   // sensor
+    },
+  });
+
+  def({
+    id: "consola_juegos", nombre: "Consola de juegos", categoria: "electro",
+    precio: 260, tam: [1, 1], rotaciones: 4, altura: 0.45,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.25, 0, 0.6, 0.5, 0.14, "negro");      // consola
+      p.cubo(0.32, 0.3, 0.14, 0.26, 0.4, 0.02, "turquesa"); // luz
+      p.cubo(0.55, 0.66, 0.02, 0.24, 0.18, 0.08, "gris_oscuro"); // mando
+      p.cilindro(0.6, 0.72, 0.1, 0.03, 0.03, "rojo");
+      p.cilindro(0.73, 0.72, 0.1, 0.03, 0.03, "amarillo");
+    },
+  });
+
+  def({
+    id: "maquina_refrescos", nombre: "Máquina de refrescos", categoria: "electro",
+    precio: 380, tam: [1, 1], rotaciones: 4, altura: 1.9,
+    luz: { x: 0.5, y: 0.5, z: 1.2, radio: 34, color: [201, 83, 73] },
+    dibujar: function (p) {
+      p.cubo(0.12, 0.12, 0, 0.76, 0.76, 1.8, "rojo");
+      p.cubo(0.88, 0.2, 0.75, 0.04, 0.6, 0.95, "blanco");  // panel
+      p.cubo(0.9, 0.28, 0.9, 0.04, 0.14, 0.3, "naranja");  // latas
+      p.cubo(0.9, 0.48, 0.9, 0.04, 0.14, 0.3, "turquesa");
+      p.cubo(0.9, 0.28, 1.3, 0.04, 0.14, 0.3, "morado");
+      p.cubo(0.9, 0.5, 0.3, 0.04, 0.24, 0.18, "negro");    // ranura
+    },
+  });
+
+  // --- iluminación ---
+
+  def({
+    id: "lampara_arco", nombre: "Lámpara de arco", categoria: "iluminacion",
+    precio: 160, tam: [1, 1], altura: 1.9,
+    luz: { x: 0.72, y: 0.5, z: 1.5, radio: 42, color: [242, 239, 230] },
+    dibujar: function (p) {
+      p.cilindro(0.25, 0.5, 0, 0.22, 0.12, "blanco");      // base mármol
+      p.cubo(0.2, 0.47, 0.12, 0.08, 0.06, 1.3, "gris");    // subida
+      p.cubo(0.2, 0.47, 1.42, 0.45, 0.06, 0.07, "gris");   // arco
+      p.cubo(0.6, 0.47, 1.28, 0.07, 0.06, 0.2, "gris");
+      p.cilindro(0.72, 0.5, 1.15, 0.14, 0.14, "gris");     // pantalla
+      p.cilindro(0.72, 0.5, 1.1, 0.09, 0.05, "amarillo");  // bombilla
+    },
+  });
+
+  def({
+    id: "lampara_papel", nombre: "Lámpara de papel", categoria: "iluminacion",
+    precio: 85, tam: [1, 1], altura: 1.45,
+    luz: { x: 0.5, y: 0.5, z: 0.9, radio: 40, color: [232, 220, 190] },
+    dibujar: function (p) {
+      p.cubo(0.34, 0.34, 0, 0.32, 0.32, 0.06, "madera_oscura");
+      p.cilindro(0.5, 0.5, 0.06, 0.035, 0.4, "madera");
+      p.cilindro(0.5, 0.5, 0.46, 0.3, 0.75, "crema");      // globo
+      p.cilindro(0.5, 0.5, 1.21, 0.12, 0.06, "madera");
+    },
+  });
+
+  def({
+    id: "neon_flamenco", nombre: "Flamenco de neón", categoria: "iluminacion",
+    precio: 190, tam: [1, 1], altura: 1.5,
+    luz: { x: 0.5, y: 0.5, z: 0.9, radio: 44, color: [216, 146, 171] },
+    dibujar: function (p) {
+      p.cubo(0.25, 0.25, 0, 0.5, 0.5, 0.08, "negro");      // base
+      p.cilindro(0.45, 0.5, 0.08, 0.025, 0.55, "rosa");    // patas
+      p.cilindro(0.58, 0.5, 0.08, 0.025, 0.4, "rosa");
+      p.cilindro(0.5, 0.5, 0.6, 0.2, 0.3, "rosa");         // cuerpo
+      p.cilindro(0.35, 0.5, 0.85, 0.05, 0.42, "rosa");     // cuello
+      p.cilindro(0.35, 0.5, 1.27, 0.09, 0.12, "rosa");     // cabeza
+      p.cubo(0.24, 0.47, 1.28, 0.1, 0.06, 0.06, "naranja"); // pico
+    },
+  });
+
+  def({
+    id: "flexo", nombre: "Flexo de estudio", categoria: "iluminacion",
+    precio: 55, tam: [1, 1], altura: 0.85,
+    luz: { x: 0.6, y: 0.5, z: 0.55, radio: 26, color: [228, 194, 90] },
+    dibujar: function (p) {
+      p.cilindro(0.4, 0.5, 0, 0.18, 0.06, "negro");
+      p.cubo(0.38, 0.48, 0.06, 0.05, 0.05, 0.45, "negro"); // brazo
+      p.cubo(0.4, 0.48, 0.5, 0.25, 0.05, 0.05, "negro");
+      p.cilindro(0.62, 0.5, 0.42, 0.1, 0.14, "amarillo");  // cabezal
+    },
+  });
+
+  def({
+    id: "antorcha", nombre: "Antorcha de jardín", categoria: "iluminacion",
+    precio: 75, tam: [1, 1], altura: 1.6,
+    luz: { x: 0.5, y: 0.5, z: 1.45, radio: 38, color: [224, 143, 69] },
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.14, 0.1, "gris_oscuro");
+      p.cilindro(0.5, 0.5, 0.1, 0.045, 1.1, "madera_oscura");
+      p.cilindro(0.5, 0.5, 1.2, 0.11, 0.16, "gris_oscuro"); // cuenco
+      p.cilindro(0.5, 0.5, 1.36, 0.07, 0.14, "naranja");    // llama
+      p.cilindro(0.5, 0.5, 1.5, 0.04, 0.09, "amarillo");
+    },
+  });
+
+  // --- pared ---
+
+  cuadro("trofeo_ciervo", "Ciervo de madera", 140, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.26, 1.08, 0.48, 0.5, 0.04, "madera_oscura"); // placa
+    pieza(ctx, pa, u + 0.36, 1.18, 0.28, 0.3, 0.09, "madera");        // cabeza
+    pieza(ctx, pa, u + 0.42, 1.1, 0.16, 0.12, 0.12, "madera");        // hocico
+    pieza(ctx, pa, u + 0.28, 1.48, 0.08, 0.26, 0.07, "beige");        // cuernos
+    pieza(ctx, pa, u + 0.64, 1.48, 0.08, 0.26, 0.07, "beige");
+    pieza(ctx, pa, u + 0.2, 1.62, 0.24, 0.07, 0.07, "beige");
+    pieza(ctx, pa, u + 0.56, 1.62, 0.24, 0.07, 0.07, "beige");
+  });
+
+  cuadro("cuadro_gato", "Cuadro: gato", 75, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.12, 1.06, 0.76, 0.72, 0.045, "madera");     // marco
+    pieza(ctx, pa, u + 0.17, 1.11, 0.66, 0.62, 0.06, "azul_claro");  // fondo
+    pieza(ctx, pa, u + 0.34, 1.2, 0.32, 0.3, 0.07, "negro");         // cara
+    pieza(ctx, pa, u + 0.36, 1.48, 0.09, 0.12, 0.07, "negro");       // orejas
+    pieza(ctx, pa, u + 0.55, 1.48, 0.09, 0.12, 0.07, "negro");
+    pieza(ctx, pa, u + 0.4, 1.34, 0.06, 0.06, 0.08, "amarillo");     // ojos
+    pieza(ctx, pa, u + 0.54, 1.34, 0.06, 0.06, 0.08, "amarillo");
+  });
+
+  cuadro("banderin", "Banderín", 45, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.14, 1.55, 0.72, 0.14, 0.05, "azul");
+    pieza(ctx, pa, u + 0.24, 1.4, 0.52, 0.15, 0.055, "azul");
+    pieza(ctx, pa, u + 0.34, 1.25, 0.32, 0.15, 0.06, "azul");
+    pieza(ctx, pa, u + 0.42, 1.12, 0.16, 0.13, 0.065, "azul");
+    pieza(ctx, pa, u + 0.2, 1.58, 0.6, 0.07, 0.07, "amarillo"); // franja
+  });
+
+  cuadro("mapa_mundo", "Mapa del mundo", 130, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.06, 1.04, 0.88, 0.72, 0.04, "madera_oscura");
+    pieza(ctx, pa, u + 0.1, 1.08, 0.8, 0.64, 0.055, "azul");
+    pieza(ctx, pa, u + 0.15, 1.38, 0.22, 0.24, 0.065, "verde");      // continentes
+    pieza(ctx, pa, u + 0.24, 1.16, 0.14, 0.2, 0.065, "verde");
+    pieza(ctx, pa, u + 0.48, 1.42, 0.2, 0.16, 0.065, "verde");
+    pieza(ctx, pa, u + 0.52, 1.14, 0.12, 0.24, 0.065, "verde");
+    pieza(ctx, pa, u + 0.72, 1.2, 0.12, 0.14, 0.065, "verde");
+  });
+
+  cuadro("guitarra_pared", "Guitarra colgada", 165, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.34, 1.05, 0.32, 0.3, 0.07, "naranja");      // cuerpo
+    pieza(ctx, pa, u + 0.38, 1.28, 0.24, 0.18, 0.075, "naranja");
+    pieza(ctx, pa, u + 0.44, 1.16, 0.12, 0.12, 0.08, "negro");       // boca
+    pieza(ctx, pa, u + 0.465, 1.44, 0.07, 0.32, 0.075, "madera_oscura"); // mástil
+    pieza(ctx, pa, u + 0.44, 1.74, 0.12, 0.1, 0.08, "negro");        // clavijero
+  });
+
+  // --- jardín ---
+
+  def({
+    id: "arenero", nombre: "Arenero", categoria: "jardin",
+    precio: 120, tam: [2, 2], altura: 0.35,
+    dibujar: function (p) {
+      p.cubo(0, 0, 0, 2, 0.16, 0.28, "madera");            // marco
+      p.cubo(0, 1.84, 0, 2, 0.16, 0.28, "madera");
+      p.cubo(0, 0.16, 0, 0.16, 1.68, 0.28, "madera");
+      p.cubo(1.84, 0.16, 0, 0.16, 1.68, 0.28, "madera");
+      p.cubo(0.16, 0.16, 0, 1.68, 1.68, 0.2, "beige");     // arena
+      p.cubo(0.5, 0.5, 0.2, 0.26, 0.26, 0.2, "rojo");      // cubo de juguete
+      p.cubo(1.2, 1.1, 0.2, 0.3, 0.08, 0.05, "azul");      // pala
+      p.cilindro(1.4, 0.6, 0.2, 0.12, 0.08, "amarillo");   // flanecito
+    },
+  });
+
+  def({
+    id: "casita_pajaros", nombre: "Casita de pájaros", categoria: "jardin",
+    precio: 70, tam: [1, 1], altura: 1.65,
+    dibujar: function (p) {
+      p.cubo(0.44, 0.44, 0, 0.12, 0.12, 1.0, "madera_oscura"); // poste
+      p.cubo(0.28, 0.3, 1.0, 0.44, 0.4, 0.36, "madera");   // casita
+      p.cubo(0.24, 0.26, 1.36, 0.52, 0.48, 0.1, "rojo");   // techo
+      p.cubo(0.3, 0.32, 1.46, 0.4, 0.36, 0.08, "rojo");
+      p.cilindro(0.62, 0.5, 1.12, 0.06, 0.06, "negro");    // agujero
+      p.cubo(0.68, 0.47, 1.05, 0.1, 0.06, 0.03, "madera"); // palito
+    },
+  });
+
+  def({
+    id: "carretilla", nombre: "Carretilla", categoria: "jardin",
+    precio: 90, tam: [2, 1], rotaciones: 4, altura: 0.7,
+    dibujar: function (p) {
+      p.cubo(1.5, 0.38, 0.1, 0.3, 0.24, 0.3, "negro");     // rueda
+      p.cubo(0.2, 0.2, 0.28, 1.3, 0.6, 0.3, "naranja");    // cuba
+      p.cubo(0.28, 0.28, 0.58, 1.14, 0.44, 0.1, "marron"); // tierra
+      p.cubo(0.05, 0.26, 0, 0.08, 0.08, 0.32, "gris");     // patas
+      p.cubo(0.05, 0.66, 0, 0.08, 0.08, 0.32, "gris");
+      p.cubo(0.05, 0.26, 0.32, 0.2, 0.06, 0.06, "madera"); // mangos
+      p.cubo(0.05, 0.68, 0.32, 0.2, 0.06, 0.06, "madera");
+    },
+  });
+
+  def({
+    id: "pozo", nombre: "Pozo de los deseos", categoria: "jardin",
+    precio: 310, tam: [1, 1], altura: 1.8,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.42, 0.5, "gris");          // cuerpo
+      p.cilindro(0.5, 0.5, 0.5, 0.34, 0.05, "turquesa");   // agua
+      p.cubo(0.08, 0.44, 0.5, 0.1, 0.12, 0.85, "madera");  // postes
+      p.cubo(0.82, 0.44, 0.5, 0.1, 0.12, 0.85, "madera");
+      p.cubo(0.02, 0.36, 1.35, 0.96, 0.28, 0.1, "rojo");   // tejadillo
+      p.cubo(0.14, 0.42, 1.45, 0.72, 0.16, 0.09, "rojo");
+      p.cilindro(0.5, 0.5, 1.02, 0.035, 0.33, "madera_oscura"); // cuerda
+      p.cubo(0.42, 0.42, 0.86, 0.16, 0.16, 0.16, "gris_oscuro"); // cubo
+    },
+  });
+
+  def({
+    id: "valla_blanca", nombre: "Valla blanca", categoria: "jardin",
+    precio: 35, tam: [1, 1], rotaciones: 2, altura: 0.85,
+    dibujar: function (p) {
+      p.cubo(0.08, 0.44, 0, 0.12, 0.12, 0.8, "blanco");    // postes
+      p.cubo(0.8, 0.44, 0, 0.12, 0.12, 0.8, "blanco");
+      p.cubo(0.44, 0.44, 0, 0.12, 0.12, 0.7, "blanco");
+      p.cubo(0, 0.46, 0.25, 1, 0.08, 0.1, "blanco");       // travesaños
+      p.cubo(0, 0.46, 0.55, 1, 0.08, 0.1, "blanco");
+    },
+  });
+
+  // --- fiesta ---
+
+  def({
+    id: "tarima_gogo", nombre: "Tarima gogó", categoria: "baile",
+    precio: 230, tam: [1, 1], altura: 1.9,
+    luz: { x: 0.5, y: 0.5, z: 0.5, radio: 34, color: [216, 146, 171] },
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.4, 0.35, "gris_oscuro");   // tarima
+      p.cilindro(0.5, 0.5, 0.35, 0.36, 0.06, "rosa");      // top brillante
+      p.cilindro(0.5, 0.5, 0.41, 0.045, 1.4, "amarillo");  // barra
+      p.cilindro(0.5, 0.5, 1.81, 0.08, 0.05, "amarillo");
+    },
+  });
+
+  def({
+    id: "maquina_humo", nombre: "Máquina de humo", categoria: "baile",
+    precio: 170, tam: [1, 1], rotaciones: 4, altura: 0.75,
+    dibujar: function (p) {
+      p.cubo(0.15, 0.25, 0, 0.55, 0.5, 0.3, "gris_oscuro");
+      p.cubo(0.7, 0.4, 0.08, 0.12, 0.2, 0.14, "negro");    // boquilla
+      p.cilindro(0.88, 0.5, 0.05, 0.13, 0.18, "gris");     // nube
+      p.cilindro(1.0, 0.5, 0.12, 0.16, 0.22, "blanco");
+      p.cubo(0.25, 0.3, 0.3, 0.1, 0.1, 0.04, "rojo");      // botones
+      p.cubo(0.4, 0.3, 0.3, 0.1, 0.1, 0.04, "verde");
+    },
+  });
+
+  cuadro("letrero_copa", "Neón: copa", 135, false, function (ctx, pa, u) {
+    pieza(ctx, pa, u + 0.16, 1.1, 0.68, 0.66, 0.04, "negro");        // panel
+    pieza(ctx, pa, u + 0.28, 1.5, 0.44, 0.08, 0.06, "turquesa");     // copa arriba
+    pieza(ctx, pa, u + 0.36, 1.4, 0.28, 0.1, 0.06, "turquesa");
+    pieza(ctx, pa, u + 0.44, 1.3, 0.12, 0.1, 0.065, "turquesa");
+    pieza(ctx, pa, u + 0.465, 1.18, 0.07, 0.14, 0.065, "turquesa");  // pie
+    pieza(ctx, pa, u + 0.38, 1.14, 0.24, 0.05, 0.065, "turquesa");
+    pieza(ctx, pa, u + 0.52, 1.52, 0.08, 0.08, 0.07, "verde");       // oliva
+  });
+
+  def({
+    id: "mesa_copas", nombre: "Mesa de cócteles", categoria: "baile",
+    precio: 140, tam: [1, 1], altura: 1.2,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.26, 0.06, "gris_oscuro");
+      p.cilindro(0.5, 0.5, 0.06, 0.05, 0.95, "gris");
+      p.cilindro(0.5, 0.5, 1.01, 0.34, 0.08, "negro");     // tablero
+      p.cilindro(0.36, 0.42, 1.09, 0.06, 0.14, "rosa");    // copas
+      p.cilindro(0.62, 0.55, 1.09, 0.06, 0.14, "turquesa");
+      p.cilindro(0.5, 0.68, 1.09, 0.045, 0.1, "blanco");
+    },
+  });
+
+  def({
+    id: "torre_luces", nombre: "Torre de luces", categoria: "baile",
+    precio: 300, tam: [1, 1], rotaciones: 4, altura: 2.0,
+    luz: { x: 0.5, y: 0.5, z: 1.6, radio: 52, color: [143, 111, 180] },
+    dibujar: function (p) {
+      p.cubo(0.25, 0.25, 0, 0.5, 0.5, 0.12, "gris_oscuro");
+      p.cubo(0.42, 0.42, 0.12, 0.16, 0.16, 1.3, "gris");   // torre
+      p.cubo(0.2, 0.3, 1.42, 0.6, 0.4, 0.3, "gris_oscuro"); // cabezal
+      p.cubo(0.8, 0.34, 1.48, 0.05, 0.14, 0.18, "rojo");   // lentes
+      p.cubo(0.8, 0.54, 1.48, 0.05, 0.14, 0.18, "verde");
+      p.cubo(0.32, 0.7, 1.48, 0.16, 0.05, 0.18, "azul");
+      p.cubo(0.56, 0.7, 1.48, 0.16, 0.05, 0.18, "morado");
+    },
+  });
+
+  // --- otros ---
+
+  def({
+    id: "mesa_billar", nombre: "Mesa de billar", categoria: "otros",
+    precio: 600, tam: [2, 1], rotaciones: 2, altura: 0.95,
+    dibujar: function (p) {
+      patas4(p, 0.12, 0.08, 1.88, 0.92, 0.16, 0.55, "madera_oscura");
+      p.cubo(0.02, 0.02, 0.55, 1.96, 0.96, 0.25, "madera_oscura");
+      p.cubo(0.1, 0.1, 0.8, 1.8, 0.8, 0.06, "verde");      // tapete
+      p.cilindro(0.12, 0.12, 0.8, 0.07, 0.07, "negro");    // troneras
+      p.cilindro(1.88, 0.12, 0.8, 0.07, 0.07, "negro");
+      p.cilindro(0.12, 0.88, 0.8, 0.07, 0.07, "negro");
+      p.cilindro(1.88, 0.88, 0.8, 0.07, 0.07, "negro");
+      p.cilindro(0.7, 0.45, 0.86, 0.05, 0.05, "blanco");   // bolas
+      p.cilindro(1.2, 0.4, 0.86, 0.05, 0.05, "rojo");
+      p.cilindro(1.32, 0.55, 0.86, 0.05, 0.05, "amarillo");
+      p.cilindro(1.25, 0.62, 0.86, 0.05, 0.05, "azul");
+    },
+  });
+
+  def({
+    id: "globo_terraqueo", nombre: "Globo terráqueo", categoria: "otros",
+    precio: 115, tam: [1, 1], altura: 1.15,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.24, 0.08, "madera_oscura");
+      p.cilindro(0.5, 0.5, 0.08, 0.045, 0.3, "madera");
+      p.cilindro(0.5, 0.5, 0.38, 0.28, 0.5, "azul");       // globo
+      p.cubo(0.32, 0.4, 0.55, 0.2, 0.22, 0.14, "verde");   // continentes
+      p.cubo(0.58, 0.34, 0.68, 0.18, 0.18, 0.12, "verde");
+      p.cilindro(0.5, 0.5, 0.88, 0.05, 0.1, "amarillo");   // eje
+    },
+  });
+
+  def({
+    id: "telescopio", nombre: "Telescopio", categoria: "otros",
+    precio: 270, tam: [1, 1], rotaciones: 4, altura: 1.5,
+    dibujar: function (p) {
+      p.cubo(0.44, 0.2, 0, 0.1, 0.1, 0.85, "gris_oscuro"); // trípode
+      p.cubo(0.24, 0.66, 0, 0.1, 0.1, 0.85, "gris_oscuro");
+      p.cubo(0.64, 0.66, 0, 0.1, 0.1, 0.85, "gris_oscuro");
+      p.cubo(0.3, 0.42, 0.85, 0.3, 0.16, 0.16, "blanco");  // tubo
+      p.cubo(0.6, 0.44, 0.98, 0.3, 0.12, 0.12, "blanco");
+      p.cilindro(0.88, 0.5, 1.02, 0.07, 0.06, "azul");     // lente
+      p.cubo(0.24, 0.45, 0.82, 0.08, 0.1, 0.1, "negro");   // ocular
+    },
+  });
+
+  def({
+    id: "bateria", nombre: "Batería", categoria: "otros",
+    precio: 480, tam: [2, 2], rotaciones: 4, altura: 1.2,
+    dibujar: function (p) {
+      p.cilindro(1.3, 1.0, 0, 0.4, 0.5, "rojo");           // bombo
+      p.cilindro(1.3, 1.0, 0.5, 0.4, 0.04, "blanco");
+      p.cilindro(0.55, 0.5, 0.45, 0.24, 0.25, "rojo");     // toms
+      p.cilindro(0.55, 0.5, 0.7, 0.24, 0.03, "blanco");
+      p.cilindro(0.55, 1.45, 0.45, 0.24, 0.25, "rojo");
+      p.cilindro(0.55, 1.45, 0.7, 0.24, 0.03, "blanco");
+      p.cilindro(1.65, 0.3, 0, 0.03, 1.0, "gris");         // pie platillo
+      p.cilindro(1.65, 0.3, 1.0, 0.24, 0.04, "amarillo");  // platillo
+      p.cilindro(0.3, 1.0, 0, 0.03, 0.85, "gris");
+      p.cilindro(0.3, 1.0, 0.85, 0.2, 0.04, "amarillo");
+    },
+  });
+
+  def({
+    id: "caballete", nombre: "Caballete de pintor", categoria: "otros",
+    precio: 135, tam: [1, 1], rotaciones: 4, altura: 1.7,
+    dibujar: function (p) {
+      p.cubo(0.3, 0.2, 0, 0.09, 0.09, 1.55, "madera");     // patas delanteras
+      p.cubo(0.3, 0.72, 0, 0.09, 0.09, 1.55, "madera");
+      p.cubo(0.62, 0.46, 0, 0.09, 0.09, 1.3, "madera");    // pata trasera
+      p.cubo(0.28, 0.14, 0.55, 0.12, 0.72, 0.08, "madera_oscura"); // bandeja
+      p.cubo(0.36, 0.18, 0.63, 0.06, 0.64, 0.85, "blanco"); // lienzo
+      p.cubo(0.42, 0.3, 0.95, 0.015, 0.3, 0.25, "azul");   // pintura
+      p.cubo(0.42, 0.45, 0.75, 0.015, 0.22, 0.18, "rojo");
+      p.cubo(0.42, 0.26, 0.72, 0.015, 0.14, 0.35, "amarillo");
+    },
+  });
+
   // ----------------------------------------------------------
   // API
   // ----------------------------------------------------------
