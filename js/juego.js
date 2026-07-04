@@ -14,7 +14,7 @@ var Juego = (function () {
   function nuevaPartida() {
     return {
       version: 1,
-      creditos: 11000,
+      creditos: 1100000,
       sigUid: 100,
       inventario: [],
       salaActual: 0,
