@@ -43,8 +43,7 @@ var UI = (function () {
 
   function ponerModo(m) {
     Sala.modo(m);
-    btnModo.textContent = (m === "decorar") ? "🚶 Pasear" : "🎨 Decorar";
-    btnModo.classList.toggle("activo", m === "decorar");
+    pintarBotonModo(m);
     if (m === "pasear") {
       cancelarFantasma();
       cerrarPanel();
@@ -73,7 +72,14 @@ var UI = (function () {
 
   function ponerModoSinCerrar(m) {
     Sala.modo(m);
-    btnModo.textContent = (m === "decorar") ? "🚶 Pasear" : "🎨 Decorar";
+    pintarBotonModo(m);
+  }
+
+  // la etiqueta va en un span para poder ocultarla en pantallas estrechas
+  function pintarBotonModo(m) {
+    btnModo.innerHTML = (m === "decorar")
+      ? '🚶 <span class="etiqueta">Pasear</span>'
+      : '🎨 <span class="etiqueta">Decorar</span>';
     btnModo.classList.toggle("activo", m === "decorar");
   }
 

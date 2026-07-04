@@ -17,7 +17,7 @@ No hay build, ni npm, ni framework de tests. Es HTML + JS + CSS puro que funcion
 - **Jugar**: abrir `index.html` en el navegador.
 - **Revisar el catálogo visualmente**: abrir `catalogo.html` (renderiza todos los furnis en miniatura).
 - **Modos de prueba**: `index.html?prueba=<modo>`. En modo prueba se arranca con partida limpia y sin guardar (salvo los modos `e2e*`), así que no toca la partida real del jugador.
-  - Flujos automatizados que pintan OK/FALLO en pantalla: `flujo` (decoración y economía), `jardin_flujo` (mascotas), `ordenador_flujo` (minijuegos), `avatar_flujo` (personalización), `guardado_flujo` (persistencia y migración), `ambiente_flujo` (día/noche).
+  - Flujos automatizados que pintan OK/FALLO en pantalla: `flujo` (decoración y economía), `jardin_flujo` (mascotas), `ordenador_flujo` (minijuegos), `avatar_flujo` (personalización), `guardado_flujo` (persistencia y migración), `ambiente_flujo` (día/noche), `responsive_flujo` (lienzo adaptable al tamaño de ventana).
   - Escenas para capturas: `catalogo`, `inventario`, `salas`, `fantasma`, `fantasma_mal`, `fantasma_pared`, `seleccion`, `jardin`, `jardin_triste`, `mascota`, `tienda`, `panel_mascotas`, `ordenador`, `ordenador_<juego>`, `avatar`, `avatar_look`, `avatar_look2`, `fase_<manana|tarde|atardecer|noche>`, `e2e1`/`e2e2` (guardado con recarga real).
   - Al añadir una feature nueva, añadir su modo `<feature>_flujo` y sus escenas de captura en el script inline de `index.html` — es el mecanismo de test del proyecto.
 - Para verificar visualmente, abrir estas URLs con un navegador (p. ej. Playwright/captura) y comprobar los OK/FALLO del recuadro.
@@ -45,7 +45,7 @@ paleta.js → iso.js → furnis.js → avatar.js → juego.js → mascotas.js
 | `Guardado` | localStorage, clave `habbo_solo_v1`, con debounce de 400 ms + intervalo de 10 s + `beforeunload`. |
 | `Ambiente` | Ciclo día/noche: 4 fases que tiñen la paleta entera; por defecto sigue la hora real (`"auto"`). De noche/atardecer los furnis con `def.luz` dibujan halo. |
 
-El arranque y el cableado de todo está en el `<script>` inline al final de `index.html`.
+El arranque y el cableado de todo está en el `<script>` inline al final de `index.html`. La interfaz es responsive: el arranque escucha `resize` y llama a `Sala.redimensionar()` (re-encuadra el lienzo), y publica la variable CSS `--alto-hud` (altura real del HUD) de la que cuelga la posición del panel lateral; en pantallas estrechas los botones del HUD ocultan su `<span class="etiqueta">` y quedan solo con el emoji.
 
 ### Reglas del estado y guardado
 

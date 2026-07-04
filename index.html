@@ -45,12 +45,12 @@
     <div id="hud-sala-caja">🏠 <span id="hud-sala"></span></div>
     <button id="btn-ambiente" title="Ciclo día/noche · pulsa para cambiar la fase"></button>
     <div id="hud-botones">
-      <button id="btn-modo">🎨 Decorar</button>
-      <button data-panel="catalogo">🛒 Catálogo</button>
-      <button data-panel="inventario">📦 Inventario</button>
-      <button data-panel="salas">🚪 Salas</button>
-      <button data-panel="mascotas">🐾 Mascotas</button>
-      <button data-panel="avatar">👤 Avatar</button>
+      <button id="btn-modo">🎨 <span class="etiqueta">Decorar</span></button>
+      <button data-panel="catalogo">🛒 <span class="etiqueta">Catálogo</span></button>
+      <button data-panel="inventario">📦 <span class="etiqueta">Inventario</span></button>
+      <button data-panel="salas">🚪 <span class="etiqueta">Salas</span></button>
+      <button data-panel="mascotas">🐾 <span class="etiqueta">Mascotas</span></button>
+      <button data-panel="avatar">👤 <span class="etiqueta">Avatar</span></button>
     </div>
   </div>
 
@@ -87,13 +87,35 @@
   Avatar.ponAspecto(Juego.aspecto()); // el aspecto vive en el estado del juego
 
   var zona = document.getElementById("zona-canvas");
-  var W = Math.max(720, Math.min(zona.clientWidth - 8, 1400));
-  var H = Math.max(480, Math.min(zona.clientHeight - 8, 900));
-  Sala.iniciar(document.getElementById("lienzo"), { ancho: W, alto: H });
+  function tamanoLienzo() {
+    return {
+      ancho: Math.max(280, Math.min(zona.clientWidth, 1400)),
+      alto: Math.max(220, Math.min(zona.clientHeight, 900))
+    };
+  }
+  var tam = tamanoLienzo();
+  Sala.iniciar(document.getElementById("lienzo"), { ancho: tam.ancho, alto: tam.alto });
   Sala.cargar(Juego.salaActual());
   UI.iniciar();
   Minijuegos.iniciar();
   Ambiente.iniciar();
+
+  // responsive: el panel lateral se ancla sobre el HUD (var CSS)
+  // y el lienzo se adapta al redimensionar la ventana
+  var hud = document.getElementById("hud");
+  function ajustarAltoHud() {
+    document.documentElement.style.setProperty("--alto-hud", hud.offsetHeight + "px");
+  }
+  ajustarAltoHud();
+  var tempRedim = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(tempRedim);
+    tempRedim = setTimeout(function () {
+      ajustarAltoHud();
+      var t = tamanoLienzo();
+      Sala.redimensionar(t.ancho, t.alto);
+    }, 120);
+  });
 
   if (!prueba) {
     Guardado.iniciar({
@@ -448,6 +470,30 @@
     paso6("al atardecer también hay luces", Ambiente.lucesEncendidas());
 
     cajaTexto(log6.join("\n"));
+  }
+
+  // ---- prueba del responsive (lienzo adaptable) ----
+
+  if (prueba === "responsive_flujo") {
+    var log7 = [];
+    function paso7(nombre, ok) { log7.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    var lienzo = document.getElementById("lienzo");
+    var dpr = window.devicePixelRatio || 1;
+    var p0 = Sala.puntoPantalla(5, 5, 0);
+    Sala.redimensionar(500, 400);
+    paso7("el lienzo cambia de tamaño CSS",
+      lienzo.style.width === "500px" && lienzo.style.height === "400px");
+    paso7("el lienzo respeta el devicePixelRatio",
+      Math.abs(lienzo.width - 500 * dpr) < 1);
+    var p1 = Sala.puntoPantalla(5, 5, 0);
+    paso7("el encuadre se recalcula", p0.x !== p1.x || p0.y !== p1.y);
+    var t7 = tamanoLienzo();
+    Sala.redimensionar(t7.ancho, t7.alto);
+    paso7("vuelve al tamaño de la ventana", lienzo.style.width === t7.ancho + "px");
+    paso7("la variable --alto-hud está puesta",
+      document.documentElement.style.getPropertyValue("--alto-hud") !== "");
+    cajaTexto(log7.join("\n"));
   }
 })();
 </script>

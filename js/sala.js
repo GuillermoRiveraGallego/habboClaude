@@ -682,8 +682,11 @@ var Sala = (function () {
     if (!sala) return;
     var m = mundoDeEvento(e);
     var c = casillaDe(m.sx, m.sy);
+    // en pantalla táctil no hubo mousemove previo: refrescar aquí
+    hover = dentro(c.x, c.y) ? c : null;
+    hoverPared = paredDe(m.sx, m.sy);
     if (modoActual === "pasear") manejarClickPasear(c.x, c.y);
-    else manejarClickDecorar(c.x, c.y, paredDe(m.sx, m.sy));
+    else manejarClickDecorar(c.x, c.y, hoverPared);
   }
 
   function alMover(e) {
@@ -709,19 +712,43 @@ var Sala = (function () {
 
   // ---------------- API ----------------
 
-  function iniciar(el, opciones) {
-    opciones = opciones || {};
-    canvas = el;
-    W = opciones.ancho || 1000;
-    H = opciones.alto || 620;
+  // encuadre según el tamaño de la sala y del lienzo
+  function encuadrar() {
+    if (!sala) return;
+    var altoP = altoParedDe(sala);
+    var anchoPx = (sala.ancho + sala.fondo) * Iso.MX + 60;
+    var altoPx = (sala.ancho + sala.fondo) * Iso.MY + altoP * Iso.MZ + 60;
+    escala = Math.min(1.25, W / anchoPx, H / altoPx);
+    var cxMundo = (sala.ancho - sala.fondo) / 2 * Iso.MX;
+    var syTop = -altoP * Iso.MZ - GROSOR_PARED * 2 * Iso.MY;
+    var syBot = (sala.ancho + sala.fondo) * Iso.MY + 0.22 * Iso.MZ;
+    trasX = W / 2 - escala * cxMundo;
+    trasY = H / 2 - escala * (syTop + syBot) / 2;
+  }
 
+  function ponerTamano(ancho, alto) {
+    W = ancho;
+    H = alto;
     var dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // adapta el lienzo a un tamaño nuevo (ventana redimensionada)
+  // y recalcula el encuadre de la sala cargada
+  function redimensionar(ancho, alto) {
+    ponerTamano(ancho, alto);
+    encuadrar();
+  }
+
+  function iniciar(el, opciones) {
+    opciones = opciones || {};
+    canvas = el;
     ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
+    ponerTamano(opciones.ancho || 1000, opciones.alto || 620);
 
     canvas.addEventListener("click", alClick);
     canvas.addEventListener("mousemove", alMover);
@@ -746,16 +773,7 @@ var Sala = (function () {
     avatar.gz = 0;
     avatar.pose = "parado";
 
-    // encuadre según el tamaño de la sala
-    var altoP = altoParedDe(sala);
-    var anchoPx = (sala.ancho + sala.fondo) * Iso.MX + 60;
-    var altoPx = (sala.ancho + sala.fondo) * Iso.MY + altoP * Iso.MZ + 60;
-    escala = Math.min(1.25, W / anchoPx, H / altoPx);
-    var cxMundo = (sala.ancho - sala.fondo) / 2 * Iso.MX;
-    var syTop = -altoP * Iso.MZ - GROSOR_PARED * 2 * Iso.MY;
-    var syBot = (sala.ancho + sala.fondo) * Iso.MY + 0.22 * Iso.MZ;
-    trasX = W / 2 - escala * cxMundo;
-    trasY = H / 2 - escala * (syTop + syBot) / 2;
+    encuadrar();
 
     // avatar en una casilla libre cercana al centro
     var bloq = rejillaBloqueo();
@@ -827,6 +845,7 @@ var Sala = (function () {
 
   return {
     iniciar: iniciar,
+    redimensionar: redimensionar,
     cargar: cargar,
     modo: modo,
     enlazar: function (callbacks) { cbs = callbacks || {}; },

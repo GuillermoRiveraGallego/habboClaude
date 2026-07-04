@@ -15,17 +15,20 @@ body {
 button {
   font-family: inherit;
   cursor: pointer;
+  touch-action: manipulation; /* sin retardo ni zoom por doble toque */
 }
 
 /* ============ SHELL DEL JUEGO ============ */
 
 body.juego {
   height: 100vh;
+  height: 100dvh; /* en móvil, 100vh queda bajo la barra del navegador */
   overflow: hidden;
 }
 
 #app {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -58,6 +61,9 @@ body.fase-noche #zona-canvas {
 
 #lienzo {
   border-radius: 10px;
+  max-width: 100%;
+  max-height: 100%;
+  touch-action: manipulation;
 }
 
 /* ============ HUD ============ */
@@ -65,6 +71,7 @@ body.fase-noche #zona-canvas {
 #hud {
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* en pantallas estrechas pasa a dos filas */
   gap: 14px;
   padding: 10px 16px;
   background: #2b2f3a;
@@ -124,8 +131,9 @@ body.fase-noche #zona-canvas {
   position: absolute;
   top: 12px;
   right: 12px;
-  bottom: 76px;
-  width: 340px;
+  /* --alto-hud la pone el script de arranque midiendo el HUD real */
+  bottom: calc(var(--alto-hud, 64px) + 12px);
+  width: min(340px, calc(100vw - 24px));
   background: #2b2f3a;
   border: 3px solid #464d5e;
   border-radius: 14px;
@@ -199,7 +207,7 @@ body.fase-noche #zona-canvas {
 
 .rejilla-panel {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 10px;
 }
 
@@ -754,6 +762,43 @@ button.mini.activo {
 
 .oculto { display: none !important; }
 #panel.oculto { display: flex !important; }
+
+/* ============ RESPONSIVE ============ */
+
+@media (max-width: 900px) {
+  #hud { gap: 8px; padding: 8px 10px; }
+  #hud button { padding: 7px 10px; font-size: 13px; }
+  #hud-marca { font-size: 15px; }
+  #hud-cartera, #hud-sala-caja { padding: 5px 10px; font-size: 13px; }
+  #hud-botones { gap: 6px; }
+}
+
+@media (max-width: 640px) {
+  #hud { gap: 6px; }
+  #hud-marca { display: none; }
+  /* los botones se quedan solo con el emoji */
+  #hud .etiqueta { display: none; }
+  #hud-sala-caja {
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #panel {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: calc(var(--alto-hud, 64px) + 8px);
+  }
+  #pista-fantasma {
+    font-size: 12px;
+    padding: 6px 12px;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+  }
+  .mo-pregunta { font-size: 24px; }
+}
 
 /* ============ PÁGINAS DE PRUEBA (catalogo.html) ============ */
 
