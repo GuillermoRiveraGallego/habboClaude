@@ -50,11 +50,30 @@ var Juego = (function () {
           colorSuelo: "verde", colorPared: "verde_oscuro",
           desbloqueada: false, precio: 500,
           furnis: []
+        },
+        {
+          nombre: "La Sala de Baile", ancho: 10, fondo: 8, tipo: "baile",
+          colorSuelo: "gris", colorPared: "morado",
+          desbloqueada: false, precio: 2000,
+          furnis: [
+            { uid: 6, id: "equipo_dj", x: 4, y: 0, rot: 0 },
+            { uid: 7, id: "altavoz", x: 1, y: 0, rot: 1 },
+            { uid: 8, id: "altavoz", x: 8, y: 0, rot: 1 },
+            { uid: 9, id: "letrero_neon", pared: "x", slot: 2 },
+            { uid: 10, id: "letrero_neon", pared: "y", slot: 4 },
+            { uid: 11, id: "barra_bar", x: 8, y: 6, rot: 1 },
+            { uid: 12, id: "taburete_disco", x: 7, y: 6, rot: 0 },
+            { uid: 13, id: "taburete_disco", x: 7, y: 7, rot: 0 },
+            { uid: 14, id: "sofa_vip", x: 1, y: 7, rot: 3 },
+            { uid: 15, id: "foco_disco", x: 0, y: 2, rot: 0 },
+            { uid: 16, id: "foco_disco", x: 9, y: 5, rot: 2 }
+          ]
         }
       ],
       mascotas: [],
       comida: { perro: 0, gato: 0, pez: 0, pajaro: 0 },
-      recompensas: { fuente: false, gnomo: false },
+      recompensas: { fuente: false, gnomo: false, bola_disco: false, bailar: false },
+      tareas: { fecha: "", progreso: {}, reclamadas: {}, juegosHoy: [], npcsHoy: [] },
       minijuegos: {},
       ambiente: "auto",
       avatar: {
@@ -79,7 +98,7 @@ var Juego = (function () {
     Object.keys(base).forEach(function (k) {
       if (datos[k] === undefined) datos[k] = base[k];
     });
-    ["comida", "recompensas", "avatar"].forEach(function (k) {
+    ["comida", "recompensas", "avatar", "tareas"].forEach(function (k) {
       Object.keys(base[k]).forEach(function (k2) {
         if (datos[k][k2] === undefined) datos[k][k2] = base[k][k2];
       });
@@ -92,6 +111,10 @@ var Juego = (function () {
     // el jardín debe existir
     if (!datos.salas.some(function (s) { return s.tipo === "jardin"; })) {
       datos.salas.push(base.salas[3]);
+    }
+    // la sala de baile debe existir
+    if (!datos.salas.some(function (s) { return s.tipo === "baile"; })) {
+      datos.salas.push(base.salas[4]);
     }
     // la sala actual debe ser válida y estar desbloqueada
     if (!datos.salas[datos.salaActual] || !datos.salas[datos.salaActual].desbloqueada) {
@@ -132,6 +155,7 @@ var Juego = (function () {
   function comprar(id) {
     var def = Furnis.get(id);
     if (!def || !gastar(def.precio)) return null;
+    if (window.Tareas) Tareas.evento("gasto", def.precio);
     return { uid: estado.sigUid++, id: id };
   }
 
@@ -167,6 +191,7 @@ var Juego = (function () {
   function cambiarSala(i) {
     if (!estado.salas[i] || !estado.salas[i].desbloqueada) return false;
     estado.salaActual = i;
+    if (window.Tareas) Tareas.evento("sala", estado.salas[i].tipo || "normal");
     cambio();
     return true;
   }
@@ -267,8 +292,16 @@ var Juego = (function () {
     d.veces++;
     if (puntos > d.mejor) d.mejor = puntos;
     if (premio > 0) estado.creditos += premio;
+    if (window.Tareas) Tareas.evento("minijuego", id);
     cambio();
     return premio;
+  }
+
+  // ---------------- tareas diarias ----------------
+
+  function tareas() {
+    if (!estado.tareas) estado.tareas = nuevaPartida().tareas;
+    return estado.tareas;
   }
 
   return {
@@ -302,6 +335,7 @@ var Juego = (function () {
     datosMinijuego: datosMinijuego,
     empezarMinijuego: empezarMinijuego,
     terminarMinijuego: terminarMinijuego,
+    tareas: tareas,
     ponAlCambiar: function (fn) { oyentes.push(fn); },
     estado: function () { return estado; }
   };

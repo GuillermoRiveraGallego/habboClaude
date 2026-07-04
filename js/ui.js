@@ -9,9 +9,10 @@ var UI = (function () {
 
   var elCreditos, elNombreSala, elPanel, elPanelTitulo, elPanelPestanas,
       elPanelContenido, elMenuFurni, elAvisos, elPistaFantasma, btnModo,
-      elPanelMascota;
+      elPanelMascota, elPanelChat, elChatMensajes, elChatInput;
 
-  var panelAbierto = null;      // "catalogo" | "inventario" | "salas" | "mascotas" | null
+  var panelAbierto = null;      // "catalogo" | "inventario" | "salas" | "mascotas" | "tareas" | null
+  var chatNpc = null;           // NPC con el chat abierto
   var categoriaActiva = "mesas";
   var movimiento = null;        // furni retirado de la sala mientras se mueve
   var pestanaMascotas = "mias"; // "mias" | "tienda"
@@ -54,7 +55,8 @@ var UI = (function () {
   // ---------------- panel lateral ----------------
 
   function abrirPanel(nombre, sub) {
-    if (nombre !== "salas" && nombre !== "mascotas" && nombre !== "avatar") {
+    if (nombre !== "salas" && nombre !== "mascotas" && nombre !== "avatar" &&
+        nombre !== "tareas") {
       ponerModoSinCerrar("decorar");
     }
     panelAbierto = nombre;
@@ -67,6 +69,7 @@ var UI = (function () {
     else if (nombre === "inventario") pintarInventario();
     else if (nombre === "mascotas") pintarMascotas();
     else if (nombre === "avatar") pintarAvatar();
+    else if (nombre === "tareas") pintarTareas();
     else pintarSalas();
   }
 
@@ -131,23 +134,33 @@ var UI = (function () {
     rejilla.className = "rejilla-panel";
     Furnis.lista().forEach(function (f) {
       if (f.categoria !== categoriaActiva) return;
-      // recompensas del jardín: ocultas hasta desbloquearlas
-      if (f.recompensa && !Juego.recompensas()[f.id]) return;
+      // furnis de recompensa: visibles pero bloqueados hasta
+      // conseguirlos (tareas diarias o mascotas felices)
+      var bloqueado = f.recompensa && !Juego.recompensas()[f.id];
       var extra = document.createElement("div");
       extra.className = "detalle";
-      extra.innerHTML = f.recompensa
-        ? '<span class="precio">🎁 Regalo del jardín</span>'
-        : '<span class="precio">' + f.precio + ' cr</span>';
+      if (bloqueado) {
+        extra.innerHTML = '<span class="candado">🔒 ' +
+          (f.desbloqueo || "Recompensa especial") + '</span>';
+      } else {
+        extra.innerHTML = f.recompensa
+          ? '<span class="precio">🎁 Recompensa conseguida</span>'
+          : '<span class="precio">' + f.precio + ' cr</span>';
+      }
       var carta = tarjetaFurni(f, extra);
-      carta.classList.add("clicable");
-      if (Juego.creditos() < f.precio) carta.classList.add("caro");
-      carta.addEventListener("click", function () {
-        if (Juego.creditos() < f.precio) {
-          avisar("No tienes créditos suficientes", "error");
-          return;
-        }
-        empezarColocacion(f.id, "catalogo");
-      });
+      if (bloqueado) {
+        carta.classList.add("bloqueada");
+      } else {
+        carta.classList.add("clicable");
+        if (Juego.creditos() < f.precio) carta.classList.add("caro");
+        carta.addEventListener("click", function () {
+          if (Juego.creditos() < f.precio) {
+            avisar("No tienes créditos suficientes", "error");
+            return;
+          }
+          empezarColocacion(f.id, "catalogo");
+        });
+      }
       rejilla.appendChild(carta);
     });
     elPanelContenido.appendChild(rejilla);
@@ -213,6 +226,7 @@ var UI = (function () {
           b.addEventListener("click", function () {
             cancelarFantasma();
             cerrarPanelMascota();
+            cerrarChat();
             Juego.cambiarSala(i);
             Sala.cargar(Juego.salaActual());
             refrescarHud();
@@ -571,6 +585,92 @@ var UI = (function () {
     return fila;
   }
 
+  // ---------------- tareas diarias ----------------
+
+  function formatear(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function pintarTareas() {
+    elPanelTitulo.textContent = "📋 Tareas diarias";
+    elPanelPestanas.innerHTML = "";
+    elPanelContenido.innerHTML =
+      '<p class="vacio">Cinco retos nuevos cada día. Se renuevan a medianoche.</p>';
+
+    Tareas.lista().forEach(function (t) {
+      var estadoT = Tareas.estadoDe(t.id);
+      var prog = Tareas.progresoDe(t.id);
+      var pct = Math.min(100, Math.round(prog / t.meta * 100));
+      var div = document.createElement("div");
+      div.className = "tarea" +
+        (estadoT === "completada" ? " completada" :
+         estadoT === "reclamada" ? " reclamada" : "");
+      div.innerHTML =
+        '<div class="cabecera"><span>' + t.icono + '</span><span>' + t.nombre + '</span></div>' +
+        '<div class="detalle">' + t.desc +
+        (t.desbloquea ? ' · 🎁 ' + t.desbloquea.regalo : '') + '</div>' +
+        '<div class="fila-barra"><span>' + formatear(prog) + ' / ' + formatear(t.meta) + '</span>' +
+        '<div class="barra"><div class="relleno b-tarea" style="width:' + pct + '%"></div></div></div>';
+      if (estadoT === "completada") {
+        var b = document.createElement("button");
+        b.className = "mini dorado";
+        b.textContent = "🎉 Reclamar " + formatear(t.recompensa) + " cr";
+        b.addEventListener("click", function () {
+          if (!Tareas.reclamar(t.id)) return;
+          avisar("+" + formatear(t.recompensa) + " créditos · " + t.nombre, "ok");
+          if (t.desbloquea) avisar(t.desbloquea.aviso, "ok");
+          pintarTareas();
+        });
+        div.appendChild(b);
+      } else if (estadoT === "reclamada") {
+        div.innerHTML += '<div class="premio">✔ Recompensa recibida</div>';
+      } else {
+        div.innerHTML += '<div class="premio">Premio: ' + formatear(t.recompensa) + ' cr</div>';
+      }
+      elPanelContenido.appendChild(div);
+    });
+  }
+
+  // ---------------- chat con NPCs ----------------
+
+  function burbuja(quien, texto) {
+    var div = document.createElement("div");
+    div.className = "burbuja " + quien;
+    div.textContent = texto;
+    elChatMensajes.appendChild(div);
+    elChatMensajes.scrollTop = elChatMensajes.scrollHeight;
+  }
+
+  function abrirChat(npc) {
+    chatNpc = npc;
+    cerrarPanelMascota();
+    elPanelChat.classList.remove("oculto");
+    document.getElementById("chat-titulo").textContent = npc.emoji + " " + npc.nombre;
+    elChatMensajes.innerHTML = "";
+    burbuja("npc", Npcs.saludoDe(npc));
+    if (window.Tareas) Tareas.evento("npc", npc.id);
+    elChatInput.value = "";
+    elChatInput.focus();
+  }
+
+  function cerrarChat() {
+    chatNpc = null;
+    elPanelChat.classList.add("oculto");
+  }
+
+  function enviarChat() {
+    var texto = elChatInput.value.trim();
+    if (!texto || !chatNpc) return;
+    burbuja("jugador", texto);
+    elChatInput.value = "";
+    var npc = chatNpc;
+    var respuesta = Npcs.responder(npc, texto);
+    // pequeña pausa para que parezca que piensa
+    setTimeout(function () {
+      if (chatNpc === npc) burbuja("npc", respuesta);
+    }, 500 + Math.random() * 500);
+  }
+
   // ---------------- colocación (fantasma) ----------------
 
   function empezarColocacion(id, origen, uid) {
@@ -737,6 +837,9 @@ var UI = (function () {
     elPistaFantasma = document.getElementById("pista-fantasma");
     btnModo = document.getElementById("btn-modo");
     elPanelMascota = document.getElementById("panel-mascota");
+    elPanelChat = document.getElementById("panel-chat");
+    elChatMensajes = document.getElementById("chat-mensajes");
+    elChatInput = document.getElementById("chat-input");
 
     Juego.ponAlCambiar(refrescarHud);
 
@@ -797,6 +900,24 @@ var UI = (function () {
       refrescarPanelMascota();
     });
 
+    // chat con NPCs
+    document.getElementById("chat-cerrar").addEventListener("click", cerrarChat);
+    document.getElementById("chat-enviar").addEventListener("click", enviarChat);
+    elChatInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") enviarChat();
+      else if (e.key === "Escape") cerrarChat();
+    });
+
+    // tareas diarias: avisos de completado y repintado en vivo
+    if (window.Tareas) {
+      Tareas.ponAlCambiar(function (def, recienCompletada) {
+        if (recienCompletada) {
+          avisar("✅ Tarea completada: " + def.nombre + " — reclama tu premio en 📋", "ok");
+        }
+        if (panelAbierto === "tareas") pintarTareas();
+      });
+    }
+
     // recompensas del jardín
     if (window.Mascotas) {
       Mascotas.ponAlRecompensa(function (id, mensaje) {
@@ -831,6 +952,7 @@ var UI = (function () {
       },
       alRotar: accionRotar,
       alMascota: abrirPanelMascota,
+      alNpc: abrirChat,
       alOrdenador: function () {
         if (window.Minijuegos) Minijuegos.abrir();
       }
@@ -846,6 +968,7 @@ var UI = (function () {
     ponerModo: ponerModo,
     empezarColocacion: empezarColocacion,
     abrirPanelMascota: abrirPanelMascota,
+    abrirChat: abrirChat,
     avisar: avisar
   };
 })();

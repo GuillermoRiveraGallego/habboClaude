@@ -17,8 +17,8 @@ No hay build, ni npm, ni framework de tests. Es HTML + JS + CSS puro que funcion
 - **Jugar**: abrir `index.html` en el navegador.
 - **Revisar el catálogo visualmente**: abrir `catalogo.html` (renderiza todos los furnis en miniatura).
 - **Modos de prueba**: `index.html?prueba=<modo>`. En modo prueba se arranca con partida limpia y sin guardar (salvo los modos `e2e*`), así que no toca la partida real del jugador.
-  - Flujos automatizados que pintan OK/FALLO en pantalla: `flujo` (decoración y economía), `jardin_flujo` (mascotas), `ordenador_flujo` (minijuegos), `avatar_flujo` (personalización), `guardado_flujo` (persistencia y migración), `ambiente_flujo` (día/noche), `responsive_flujo` (lienzo adaptable al tamaño de ventana).
-  - Escenas para capturas: `catalogo`, `inventario`, `salas`, `fantasma`, `fantasma_mal`, `fantasma_pared`, `seleccion`, `jardin`, `jardin_triste`, `mascota`, `tienda`, `panel_mascotas`, `ordenador`, `ordenador_<juego>`, `avatar`, `avatar_look`, `avatar_look2`, `fase_<manana|tarde|atardecer|noche>`, `e2e1`/`e2e2` (guardado con recarga real).
+  - Flujos automatizados que pintan OK/FALLO en pantalla: `flujo` (decoración y economía), `jardin_flujo` (mascotas), `ordenador_flujo` (minijuegos), `avatar_flujo` (personalización), `guardado_flujo` (persistencia y migración), `ambiente_flujo` (día/noche), `responsive_flujo` (lienzo adaptable al tamaño de ventana), `npcs_flujo` (NPCs y chat), `tareas_flujo` (tareas diarias y desbloqueos), `baile_flujo` (sala de baile).
+  - Escenas para capturas: `catalogo`, `inventario`, `salas`, `fantasma`, `fantasma_mal`, `fantasma_pared`, `seleccion`, `jardin`, `jardin_triste`, `mascota`, `tienda`, `panel_mascotas`, `ordenador`, `ordenador_<juego>`, `avatar`, `avatar_look`, `avatar_look2`, `fase_<manana|tarde|atardecer|noche>`, `npc_chat`, `visita`, `tareas`, `baile`, `e2e1`/`e2e2` (guardado con recarga real).
   - Al añadir una feature nueva, añadir su modo `<feature>_flujo` y sus escenas de captura en el script inline de `index.html` — es el mecanismo de test del proyecto.
 - Para verificar visualmente, abrir estas URLs con un navegador (p. ej. Playwright/captura) y comprobar los OK/FALLO del recuadro.
 
@@ -28,17 +28,19 @@ No hay build, ni npm, ni framework de tests. Es HTML + JS + CSS puro que funcion
 
 ```
 paleta.js → iso.js → furnis.js → avatar.js → juego.js → mascotas.js
-→ sala.js → ui.js → minijuegos.js → guardado.js → ambiente.js
+→ npcs.js → tareas.js → sala.js → ui.js → minijuegos.js → guardado.js → ambiente.js
 ```
 
 | Global | Responsabilidad |
 |---|---|
 | `Paleta` | Paleta cerrada de 20 colores con 3 variantes precalculadas (`sup`/`izq`/`der`). Un nombre fuera de paleta pinta magenta y avisa por consola. |
 | `Iso` | Proyección isométrica y primitivas (`cubo`, `plano`, `cilindro`). **Toda la luz vive aquí**: las primitivas asignan las variantes a sus caras; nadie elige el sombreado. |
-| `Furnis` | Catálogo completo (~40+ muebles). Cada furni se dibuja SOLO con primitivas vía el `Pincel`, en coordenadas locales con rot 0; el pincel aplica rotación y ordena piezas. La misma función `dibujar` sirve en sala, catálogo e inventario. |
+| `Furnis` | Catálogo completo (~85 muebles). Cada furni se dibuja SOLO con primitivas vía el `Pincel`, en coordenadas locales con rot 0; el pincel aplica rotación y ordena piezas. La misma función `dibujar` sirve en sala, catálogo e inventario. |
 | `Avatar` | Personaje voxel + poses (andar, sentado, tumbado). Lee su aspecto de `Juego.estado().avatar` vía `ponAspecto()`. |
 | `Juego` | **Único dueño del estado persistente** (créditos, salas, inventario, mascotas, minijuegos, avatar, ambiente). Toda mutación llama a `cambio()`, que notifica a los oyentes (autoguardado, UI). |
 | `Mascotas` | Lógica del jardín: stats (hambre/felicidad/energía), tick de decaimiento, compra, hogares (acuario/aviario), recompensas. |
+| `Npcs` | NPCs basados en datos, en dos listas: FIJOS (uno por sala, por índice de sala) y VISITANTES ("de visita": una rotación determinista por número de día decide quién aparece y en cuál de sus puestos, con días sin visita; `forzarVisita(id\|null\|undefined)` lo controla en pruebas). Se dibujan con el cuerpo del `Avatar` (intercambio temporal de aspecto) y conversan por palabras clave normalizadas (sin acentos ni diacríticos — algunos hablan rumano) con genéricas aleatorias de respaldo. Sin estado persistente. |
+| `Tareas` | Tareas diarias basadas en datos. Los módulos avisan con `Tareas.evento(tipo, dato)` (`"minijuego"`, `"gasto"`, `"npc"`, `"sala"`, `"mascota"`); el estado vive en `Juego.estado().tareas` y se reinicia solo al cambiar de día. Reclamar paga créditos y puede desbloquear claves de `Juego.recompensas()` (furnis o habilidades como `bailar`). |
 | `Sala` | Motor: render con orden de pintado `(x+y)` ascendente, rejilla de bloqueo derivada, A*, modo decoración con fantasma, bucle `requestAnimationFrame`. |
 | `UI` | HUD, panel lateral (catálogo/inventario/salas/mascotas/avatar), menú de furni, avisos. Orquesta `Juego` (estado) y `Sala` (motor). |
 | `Minijuegos` | Modal del ordenador fijo del Salón: 5 juegos con enfriamiento de 90 s (arranca al INICIAR la partida). |
@@ -60,5 +62,6 @@ El arranque y el cableado de todo está en el `<script>` inline al final de `ind
 - 1 casilla = 64×32 px; todo se define en múltiplos de **media casilla** (0.5) en x/y/z. Alturas de referencia: asiento 0.5, mesa 1.0, respaldo 1.25, estantería 2.0.
 - `rot`: 0=+x, 1=+y, 2=−x, 3=−y (los de 2 rotaciones usan {0,1}).
 - Definición de furni: `{ id, nombre, categoria, precio, tam: [an, fo], rotaciones, sentable, bloquea, capa: "furni"|"alfombra"|"pared", dibujar(pincel) }`. Máximo un furni de capa `furni` por casilla; las alfombras coexisten debajo; los de pared se anclan a una pared (`{pared: "x"|"y", slot}`) sin ocupar suelo.
-- El jardín es una sala con `tipo: "jardin"` (seto bajo en lugar de pared; las mascotas solo viven ahí).
+- El jardín es una sala con `tipo: "jardin"` (seto bajo en lugar de pared; las mascotas solo viven ahí). La sala de baile es `tipo: "baile"`: pista central animada (margen de 2 casillas) dibujada en el bucle de `Sala`; con la habilidad `bailar` desbloqueada el avatar baila solo al quedarse quieto en la pista.
+- Furnis de recompensa: `recompensa: true` + `desbloqueo: "texto de cómo conseguirlo"`. Aparecen bloqueados (🔒) en el catálogo hasta que su id sea `true` en `Juego.recompensas()` (los desbloquean las mascotas felices o el reclamo de tareas).
 - Estilo de código: `"use strict"`, ES5 (`var`, funciones clásicas), IIFEs con API pública explícita en el `return`, comentarios de cabecera en bloque explicando el módulo.

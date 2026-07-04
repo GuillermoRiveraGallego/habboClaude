@@ -36,6 +36,19 @@
       </div>
     </div>
 
+    <div id="panel-chat" class="oculto">
+      <div id="chat-cabecera">
+        <span id="chat-titulo"></span>
+        <button id="chat-cerrar">✕</button>
+      </div>
+      <div id="chat-mensajes"></div>
+      <div id="chat-envio">
+        <input id="chat-input" type="text" maxlength="80"
+               placeholder="Escribe algo…" autocomplete="off">
+        <button id="chat-enviar">➤</button>
+      </div>
+    </div>
+
     <div id="avisos"></div>
   </div>
 
@@ -49,6 +62,7 @@
       <button data-panel="catalogo">🛒 <span class="etiqueta">Catálogo</span></button>
       <button data-panel="inventario">📦 <span class="etiqueta">Inventario</span></button>
       <button data-panel="salas">🚪 <span class="etiqueta">Salas</span></button>
+      <button data-panel="tareas">📋 <span class="etiqueta">Tareas</span></button>
       <button data-panel="mascotas">🐾 <span class="etiqueta">Mascotas</span></button>
       <button data-panel="avatar">👤 <span class="etiqueta">Avatar</span></button>
     </div>
@@ -70,6 +84,8 @@
 <script src="js/avatar.js"></script>
 <script src="js/juego.js"></script>
 <script src="js/mascotas.js"></script>
+<script src="js/npcs.js"></script>
+<script src="js/tareas.js"></script>
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/minijuegos.js"></script>
@@ -386,7 +402,7 @@
     paso5("cargar devuelve datos", !!datos);
     paso5("créditos persistidos", datos && datos.creditos === cG);
     paso5("aspecto persistido", datos && datos.avatar.camiseta === "rojo");
-    paso5("las 4 salas persistidas", datos && datos.salas.length === 4);
+    paso5("las 5 salas persistidas", datos && datos.salas.length === 5);
 
     // migración: partida "antigua" sin comida y sin ordenador fijo
     delete datos.comida;
@@ -494,6 +510,187 @@
     paso7("la variable --alto-hud está puesta",
       document.documentElement.style.getPropertyValue("--alto-hud") !== "");
     cajaTexto(log7.join("\n"));
+  }
+
+  // ---- NPCs y chat ----
+
+  // busca el tema de un NPC que contenga cierta palabra clave
+  function temaCon(npc, clave) {
+    for (var i = 0; i < npc.temas.length; i++) {
+      if (npc.temas[i].claves.indexOf(clave) !== -1) return npc.temas[i];
+    }
+    return { respuestas: [] };
+  }
+
+  if (prueba === "npc_chat") {
+    UI.abrirChat(Npcs.porId("antonio")); // el abuelo del Salón
+    document.getElementById("chat-input").value = "¿Te gusta el fútbol sala?";
+  } else if (prueba === "visita") {
+    Npcs.forzarVisita("leo_messa"); // su primer puesto es el jardín
+    Juego.desbloquearSala(3);
+    Juego.cambiarSala(3);
+    Sala.cargar(Juego.salaActual());
+  } else if (prueba === "npcs_flujo") {
+    var log8 = [];
+    function paso8(nombre, ok) { log8.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    Npcs.forzarVisita(null); // día sin visita: resultados deterministas
+    var antonio = Npcs.porId("antonio");
+    paso8("el abuelo Antonio vive en el salón",
+      Npcs.enSala(0).length === 1 && Npcs.enSala(0)[0] === antonio);
+    paso8("los fijos viven en su sala (Guille, Ion, Ioana, Marta)",
+      Npcs.enSala(1)[0].id === "guille" && Npcs.enSala(2)[0].id === "ion" &&
+      Npcs.enSala(4)[0].id === "ioana" && Npcs.enSala(3)[0].id === "marta");
+    paso8("la disco tiene dos fijos (Ioana y Nacho)",
+      Npcs.enSala(4).length === 2 && Npcs.enSala(4)[1].id === "nacho");
+    paso8("npcEn encuentra a Antonio", Npcs.npcEn(antonio.x, antonio.y, 0) === antonio);
+    paso8("npcEn en casilla vacía = no", Npcs.npcEn(5, 5, 0) === null);
+    paso8("no se puede colocar un furni sobre el NPC",
+      !Sala.validar("mesa_madera", antonio.x, antonio.y, 0));
+
+    var r1 = Npcs.responder(antonio, "¿Te gusta el FÚTBOL sala?");
+    paso8("responde por palabra clave", temaCon(antonio, "futbol").respuestas.indexOf(r1) !== -1);
+    var mami = Npcs.porId("mamitica");
+    var r2 = Npcs.responder(mami, "mulțumesc por todo");
+    paso8("entiende rumano con diacríticos", temaCon(mami, "multumesc").respuestas.indexOf(r2) !== -1);
+    var ion = Npcs.porId("ion");
+    var r3 = Npcs.responder(ion, "¿me haces una REFORMA?");
+    paso8("Ion responde de obras", temaCon(ion, "reforma").respuestas.indexOf(r3) !== -1);
+    var r4 = Npcs.responder(antonio, "fkjshdkfjh");
+    paso8("genérica si nada encaja", antonio.genericas.indexOf(r4) !== -1);
+    var nacho = Npcs.porId("nacho");
+    var r5 = Npcs.responder(nacho, "cuéntame un CHISTE, anda");
+    paso8("Nacho suelta un chiste", temaCon(nacho, "chiste").respuestas.indexOf(r5) !== -1);
+    var martaF = Npcs.porId("marta");
+    var r6 = Npcs.responder(martaF, "tengo DOLOR de cabeza");
+    paso8("Marta receta con cariñosa mala leche",
+      temaCon(martaF, "dolor").respuestas.indexOf(r6) !== -1);
+
+    // visitantes
+    var leo = Npcs.porId("leo_messa");
+    paso8("sin visita forzada Leo no está", Npcs.npcEn(leo.puestos[0].x, leo.puestos[0].y, leo.puestos[0].sala) === null);
+    Npcs.forzarVisita("leo_messa");
+    paso8("forzar la visita lo trae a su puesto",
+      Npcs.enSala(leo.sala).indexOf(leo) !== -1 && leo.visita === true);
+    Npcs.forzarVisita();
+    var v = Npcs.visitanteActual();
+    paso8("el calendario decide la visita del día",
+      v === null || v.id === "leo_messa" || v.id === "mamitica");
+    Npcs.forzarVisita(null);
+
+    UI.abrirChat(antonio);
+    var mensajes = document.getElementById("chat-mensajes");
+    paso8("abrir el chat pinta el saludo", mensajes.children.length === 1);
+    paso8("hablar avanza la tarea de vecinos", Tareas.progresoDe("sociable") === 1);
+    UI.abrirChat(antonio);
+    paso8("repetir NPC no avanza la tarea", Tareas.progresoDe("sociable") === 1);
+    document.getElementById("chat-input").value = "hola abuelo";
+    document.getElementById("chat-enviar").click();
+    paso8("enviar pinta la burbuja del jugador", mensajes.children.length === 2);
+
+    cajaTexto(log8.join("\n"));
+  }
+
+  // ---- tareas diarias ----
+
+  if (prueba === "tareas") {
+    Tareas.evento("minijuego", "sumas");
+    Tareas.evento("minijuego", "memoria");
+    Tareas.evento("gasto", 12000);
+    Tareas.evento("npc", "marta");
+    Tareas.evento("mascota");
+    Tareas.evento("mascota");
+    Tareas.evento("mascota");
+    UI.abrirPanel("tareas");
+  } else if (prueba === "tareas_flujo") {
+    var log9 = [];
+    function paso9(nombre, ok) { log9.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    paso9("estado inicial pendiente", Tareas.estadoDe("jugon") === "pendiente");
+    Tareas.evento("minijuego", "sumas");
+    paso9("un minijuego avanza a 1", Tareas.progresoDe("jugon") === 1);
+    Tareas.evento("minijuego", "sumas");
+    paso9("repetir el mismo juego no cuenta", Tareas.progresoDe("jugon") === 1);
+    ["memoria", "preguntas", "reflejos", "adivina"].forEach(function (j) {
+      Tareas.evento("minijuego", j);
+    });
+    paso9("con los 5 queda completada", Tareas.estadoDe("jugon") === "completada");
+    var cT = Juego.creditos();
+    paso9("reclamar da la recompensa", Tareas.reclamar("jugon") &&
+      Juego.creditos() === cT + 10000);
+    paso9("queda reclamada", Tareas.estadoDe("jugon") === "reclamada");
+    paso9("no se puede reclamar dos veces", !Tareas.reclamar("jugon"));
+
+    Tareas.evento("gasto", 30000);
+    paso9("el gasto acumula", Tareas.progresoDe("decorador") === 30000 &&
+      Tareas.estadoDe("decorador") === "progreso");
+    Tareas.evento("gasto", 20000);
+    paso9("decorador completada al llegar a 50.000",
+      Tareas.estadoDe("decorador") === "completada");
+    paso9("bola de disco bloqueada aún", !Juego.recompensas().bola_disco);
+    Tareas.reclamar("decorador");
+    paso9("reclamar desbloquea la bola de disco", Juego.recompensas().bola_disco === true);
+
+    Juego.desbloquearSala(4);
+    Juego.cambiarSala(4);
+    Sala.cargar(Juego.salaActual());
+    paso9("entrar en la sala de baile completa la tarea",
+      Tareas.estadoDe("fiestero") === "completada");
+    Tareas.reclamar("fiestero");
+    paso9("reclamar enseña a bailar", Juego.recompensas().bailar === true);
+
+    paso9("el estado vive en la partida (guardable)",
+      Juego.estado().tareas.reclamadas.jugon === true);
+    Juego.tareas().fecha = "2000-01-01";
+    Tareas.comprobarDia();
+    paso9("al cambiar el día se reinicia el progreso",
+      Tareas.progresoDe("jugon") === 0 && Tareas.estadoDe("jugon") === "pendiente");
+    paso9("los desbloqueos no se pierden con el día", Juego.recompensas().bailar === true);
+
+    cajaTexto(log9.join("\n"));
+  }
+
+  // ---- sala de baile ----
+
+  if (prueba === "baile") {
+    Juego.desbloquearSala(4);
+    Juego.desbloquearRecompensa("bola_disco");
+    Juego.desbloquearRecompensa("bailar");
+    Juego.salas()[4].furnis.push({ uid: 80, id: "bola_disco", x: 7, y: 4, rot: 0 });
+    Juego.cambiarSala(4);
+    Sala.cargar(Juego.salaActual());
+  } else if (prueba === "baile_flujo") {
+    var log10 = [];
+    function paso10(nombre, ok) { log10.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    paso10("la sala de baile existe",
+      Juego.salas().some(function (s) { return s.tipo === "baile"; }));
+    paso10("los furnis de fiesta están en el catálogo",
+      !!Furnis.get("equipo_dj") && !!Furnis.get("altavoz") && !!Furnis.get("bola_disco"));
+    paso10("la bola de disco es recompensa bloqueada",
+      Furnis.get("bola_disco").recompensa === true && !Juego.recompensas().bola_disco);
+
+    // migración: una partida antigua sin sala de baile la recibe
+    var copia = JSON.parse(JSON.stringify(Juego.estado()));
+    copia.salas = copia.salas.filter(function (s) { return s.tipo !== "baile"; });
+    Juego.iniciar(copia);
+    paso10("la migración añade la sala de baile",
+      Juego.salas().some(function (s) { return s.tipo === "baile"; }));
+
+    var cB = Juego.creditos();
+    paso10("se desbloquea pagando 2.000", Juego.desbloquearSala(4) &&
+      Juego.creditos() === cB - 2000);
+    paso10("se puede entrar", Juego.cambiarSala(4));
+    Sala.cargar(Juego.salaActual());
+    paso10("tiene equipo de DJ de serie",
+      Juego.salaActual().furnis.some(function (f) { return f.id === "equipo_dj"; }));
+    var idsBaile = Juego.salaActual().furnis.map(function (f) { return f.id; });
+    paso10("viene amueblada como discoteca (barra, focos, sofá VIP, neón)",
+      idsBaile.indexOf("barra_bar") !== -1 && idsBaile.indexOf("foco_disco") !== -1 &&
+      idsBaile.indexOf("sofa_vip") !== -1 && idsBaile.indexOf("letrero_neon") !== -1);
+    paso10("Ioana organiza la sala", Npcs.enSala(4)[0].nombre === "Ioana");
+
+    cajaTexto(log10.join("\n"));
   }
 })();
 </script>

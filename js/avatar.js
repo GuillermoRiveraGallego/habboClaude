@@ -6,7 +6,8 @@
 //
 // Estado del avatar: { x, y (centro, coords de casilla
 // continuas), dir (0=+x, 1=+y, 2=−x, 3=−y), pose ("parado" |
-// "andando" | "sentado" | "tumbado"), fase (ciclo de andar),
+// "andando" | "sentado" | "tumbado" | "bailando"), fase (ciclo
+// de andar; "bailando" balancea sobre el sitio),
 // gz (altura base: 0 en el suelo, altura del asiento sentado) }
 //
 // PERSONALIZACIÓN (idea 6): el aspecto — peinado y colores de
@@ -132,8 +133,9 @@ var Avatar = (function () {
       return L;
     }
 
-    // parado / andando
-    var sw = (av.pose === "andando") ? Math.sin(av.fase || 0) * 0.15 : 0;
+    // parado / andando / bailando
+    var sw = (av.pose === "andando" || av.pose === "bailando")
+      ? Math.sin(av.fase || 0) * 0.15 : 0;
     parte(L, cx, cy, d, sw, -0.10, 0.15, 0.14, g, g + 0.12, aspecto.zapatos);
     parte(L, cx, cy, d, -sw, 0.10, 0.15, 0.14, g, g + 0.12, aspecto.zapatos);
     parte(L, cx, cy, d, sw, -0.10, 0.15, 0.14, g + 0.12, g + 0.62, aspecto.pantalon);
@@ -153,7 +155,7 @@ var Avatar = (function () {
   }
 
   function dibujar(ctx, av) {
-    if (av.pose === "parado" || av.pose === "andando") {
+    if (av.pose === "parado" || av.pose === "andando" || av.pose === "bailando") {
       Iso.sombra(ctx, av.x - 0.26, av.y - 0.26, 0.52, 0.52);
     }
     var partes = Iso.ordenarCajas(partesDe(av));

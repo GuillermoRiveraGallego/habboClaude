@@ -134,6 +134,7 @@ var Mascotas = (function () {
     m.energia = clamp(m.energia + 15);
     m.felicidad = clamp(m.felicidad + 8);
     m.ultimaComida = Date.now();
+    if (window.Tareas) Tareas.evento("mascota");
     return { ok: true };
   }
 
@@ -150,6 +151,7 @@ var Mascotas = (function () {
     m.ultimoJuego = ahora;
     var rt = runtime[m.uid];
     if (rt) rt.saltoHasta = performance.now() + 1600;
+    if (window.Tareas) Tareas.evento("mascota");
     return { ok: true };
   }
 

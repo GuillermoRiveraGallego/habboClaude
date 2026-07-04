@@ -15,6 +15,16 @@ var Sala = (function () {
 
   function esJardin(s) { return !!(s && s.tipo === "jardin"); }
 
+  function esBaile(s) { return !!(s && s.tipo === "baile"); }
+
+  // pista central de la sala de baile (margen de 2 casillas)
+  function enPista(s, tx, ty) {
+    return esBaile(s) &&
+      tx >= 2 && tx < s.ancho - 2 && ty >= 2 && ty < s.fondo - 2;
+  }
+
+  var COLORES_PISTA = ["rosa", "turquesa", "amarillo", "morado", "azul_claro", "verde"];
+
   function altoParedDe(s) { return esJardin(s) ? ALTO_SETO : ALTO_PARED; }
 
   var PARES_SUELO = {
@@ -36,6 +46,7 @@ var Sala = (function () {
   var tUltimo = 0;
   var congelado = false;
 
+  var tBaile = 0;              // acumulador del giro al bailar
   var modoActual = "pasear";   // "pasear" | "decorar"
   var fantasma = null;         // {id, rot, origen, uid}
   var seleccion = null;        // instancia seleccionada en modo decorar
@@ -87,6 +98,12 @@ var Sala = (function () {
       for (y = f.y; y < f.y + p[1]; y++)
         for (x = f.x; x < f.x + p[0]; x++)
           if (dentro(x, y)) g[y][x] = true;
+    }
+    // los NPCs ocupan su casilla (no se puede caminar a través)
+    if (window.Npcs) {
+      Npcs.enSala(Juego.indiceSala()).forEach(function (n) {
+        if (dentro(n.x, n.y)) g[n.y][n.x] = true;
+      });
     }
     return g;
   }
@@ -262,6 +279,17 @@ var Sala = (function () {
     }
     if (!camino.length) {
       if (avatar.pose === "andando") { avatar.pose = "parado"; avatar.fase = 0; }
+      // habilidad desbloqueable: bailar quieto sobre la pista
+      if (!avatar.sentadoEn && Juego.recompensas().bailar &&
+          enPista(sala, Math.floor(avatar.x), Math.floor(avatar.y))) {
+        avatar.pose = "bailando";
+        avatar.fase += dt * 9;
+        tBaile += dt;
+        if (tBaile > 0.9) { tBaile = 0; avatar.dir = (avatar.dir + 1) % 4; }
+      } else if (avatar.pose === "bailando") {
+        avatar.pose = "parado";
+        avatar.fase = 0;
+      }
       return;
     }
     avatar.fase += dt * 11;
@@ -308,6 +336,13 @@ var Sala = (function () {
       var ca = avatar.sentadoEn ? avatar.casilla : casillaAvatar();
       if (ca.x >= x && ca.x < x + p[0] && ca.y >= y && ca.y < y + p[1]) return false;
     }
+    // ni encima de un NPC
+    if (def.capa === "furni" && window.Npcs) {
+      var ns = Npcs.enSala(Juego.indiceSala());
+      for (var j = 0; j < ns.length; j++) {
+        if (ns[j].x >= x && ns[j].x < x + p[0] && ns[j].y >= y && ns[j].y < y + p[1]) return false;
+      }
+    }
     return true;
   }
 
@@ -323,6 +358,16 @@ var Sala = (function () {
 
   function manejarClickPasear(tx, ty) {
     if (!dentro(tx, ty)) return;
+    // NPCs: click → acercarse y abrir el chat
+    if (window.Npcs) {
+      var npc = Npcs.npcEn(tx, ty, Juego.indiceSala());
+      if (npc) {
+        if (cbs.alNpc) {
+          acercarseA(tx, ty, function () { cbs.alNpc(npc); });
+        }
+        return;
+      }
+    }
     // mascotas del jardín: click → panel de la mascota
     if (esJardin(sala) && window.Mascotas) {
       var m = Mascotas.mascotaEn(tx, ty);
@@ -490,6 +535,23 @@ var Sala = (function () {
       for (var gy = 0; gy < F; gy++)
         for (var gx = 0; gx < A; gx++)
           Iso.plano(ctx, gx, gy, 0, 1, 1, "verde"); // césped
+    } else if (esBaile(sala)) {
+      // pista central: los colores rotan en oleada diagonal
+      var pasoPista = Math.floor(ahoraSeg * 1.6);
+      var parB = PARES_SUELO[sala.colorSuelo] || sala.colorSuelo;
+      for (var by = 0; by < F; by++)
+        for (var bx = 0; bx < A; bx++) {
+          if (enPista(sala, bx, by)) {
+            Iso.plano(ctx, bx, by, 0, 1, 1,
+              COLORES_PISTA[(bx * 2 + by * 3 + pasoPista) % COLORES_PISTA.length]);
+            // destello suave que recorre la pista
+            if ((bx + by + pasoPista) % 5 === 0) {
+              casillaMarcada(bx, by, "rgba(255, 255, 255, 0.16)", true);
+            }
+          } else {
+            Iso.plano(ctx, bx, by, 0, 1, 1, ((bx + by) % 2) ? parB : sala.colorSuelo);
+          }
+        }
     } else {
       var par = PARES_SUELO[sala.colorSuelo] || sala.colorSuelo;
       for (var ty = 0; ty < F; ty++)
@@ -573,6 +635,14 @@ var Sala = (function () {
         if (!cm) return;
         cm.dibuja = function () { Mascotas.dibujarSuelto(ctx, m, ahoraSeg); };
         cajas.push(cm);
+      });
+    }
+    // NPCs de la sala
+    if (window.Npcs) {
+      Npcs.enSala(Juego.indiceSala()).forEach(function (npc) {
+        var cn = Npcs.caja(npc);
+        cn.dibuja = function () { Npcs.dibujar(ctx, npc, ahoraSeg); };
+        cajas.push(cn);
       });
     }
     var ordenadas = Iso.ordenarCajas(cajas);
@@ -699,6 +769,9 @@ var Sala = (function () {
   }
 
   function alTecla(e) {
+    // no interceptar teclas mientras se escribe (chat, minijuegos)
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
     if (modoActual !== "decorar") return;
     if (e.key === "r" || e.key === "R") {
       if (fantasma) rotarFantasma();
