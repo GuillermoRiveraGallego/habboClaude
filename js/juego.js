@@ -4,7 +4,7 @@
 // JUEGO — estado global del jugador: créditos, inventario,
 // salas y operaciones de economía. La UI orquesta; aquí vive
 // el estado y sus reglas. (El guardado llega en la fase 4:
-// `alCambiar` es el gancho de autoguardado.).
+// `alCambiar` es el gancho de autoguardado.). .
 // ============================================================
 var Juego = (function () {
 
