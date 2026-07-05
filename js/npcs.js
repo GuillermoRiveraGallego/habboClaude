@@ -284,8 +284,236 @@ var Npcs = (function () {
     }
   ];
 
+  // NPCs DEL CASINO — puro ambiente, sin IA: posiciones
+  // predefinidas, estados simples ("esperando" | "caminando" |
+  // "jugando" | "sentado") que rotan con temporizadores, paseo
+  // aleatorio de casilla en casilla (solo la conducta
+  // "paseante") y frases predefinidas en burbuja. Viven en la
+  // sala de tipo "casino", sea cual sea su índice. Todo su
+  // runtime es efímero: nunca se guarda.
+  var CASINO = [
+    {
+      id: "dolores", nombre: "Dolores", emoji: "🃏", casino: true,
+      conducta: "crupier", x: 2, y: 1, dir: 1,
+      aspecto: { peinado: "coleta", pelo: "negro", piel: "piel",
+                 camiseta: "negro", pantalon: "negro", zapatos: "negro" },
+      frases: [
+        "Hagan juego, señores.",
+        "No más apuestas.",
+        "Buena mano.",
+        "La banca gana... casi siempre.",
+        "Cartas sobre la mesa."
+      ],
+      saludos: [
+        "Bienvenido a la mesa. Soy Dolores, la crupier. ¿Se atreve con un blackjack?",
+        "Buenas noches... aquí siempre es de noche. ¿Una partidita?"
+      ],
+      temas: [
+        { claves: ["hola", "buenas", "que tal", "hey"],
+          respuestas: ["Bienvenido al casino. La casa invita al ambiente; lo demás se paga."] },
+        { claves: ["blackjack", "carta", "cartas", "21", "mano"],
+          respuestas: ["En el blackjack la banca se planta con 17. Yo nunca me paso... casi nunca.",
+                       "¿Consejo? Con 11 pida carta siempre. Y no me diga que se lo dije yo."] },
+        { claves: ["truco", "ganar", "suerte", "trampa"],
+          respuestas: ["¿Trucos? La única jugada segura es saber cuándo retirarse.",
+                       "La suerte no existe, existe la banca. Pero no se lo diga a Rufino."] },
+        { claves: ["adios", "chao", "hasta luego", "me voy"],
+          respuestas: ["Que la suerte le acompañe. La necesitará."] }
+      ],
+      genericas: [
+        "Hagan juego, que la mesa no espera.",
+        "Eso no está en el reglamento, se lo aseguro.",
+        "Discreción ante todo: lo que se oye en el casino, se queda en el casino."
+      ]
+    },
+    {
+      id: "rufino", nombre: "Rufino", emoji: "🎲", casino: true,
+      conducta: "paseante", x: 6, y: 6, dir: 0,
+      aspecto: { peinado: "clasico", pelo: "gris", piel: "piel",
+                 camiseta: "blanco", pantalon: "gris_oscuro", zapatos: "negro" },
+      frases: [
+        "Hoy la suerte está rara...",
+        "Voy a probar una tirada más.",
+        "Esa ruleta no me da buena espina.",
+        "Ayer casi gano el bote.",
+        "Una más y me voy... seguro."
+      ],
+      saludos: [
+        "Chsst... ¿tú también lo notas? Hoy la suerte está rara. Soy Rufino, por cierto.",
+        "¡Compañero de fatigas! ¿Qué tal se te da la ruleta?"
+      ],
+      temas: [
+        { claves: ["hola", "buenas", "que tal", "hey"],
+          respuestas: ["Buenas, buenas. No te acerques mucho a la tragaperras de la derecha: está gafada."] },
+        { claves: ["ruleta", "numero", "rojo", "negro"],
+          respuestas: ["Yo siempre al rojo. Menos ayer, que salió rojo y yo aposté al negro.",
+                       "El 17 lleva semanas sin salir. Eso significa que está a punto... ¿no?"] },
+        { claves: ["suerte", "ganar", "premio", "bote"],
+          respuestas: ["Casi gano el bote tres veces esta semana. CASI. Esa es la palabra clave.",
+                       "Mi sistema es infalible: apostar poco y quejarse mucho."] },
+        { claves: ["adios", "chao", "hasta luego", "me voy"],
+          respuestas: ["Yo también me iba ya... bueno, una tirada más y me voy."] }
+      ],
+      genericas: [
+        "Una más y me voy, de verdad.",
+        "¿Tú crees en las rachas? Yo llevo una mala desde 2019.",
+        "Eso mismo le dije yo a la tragaperras, y ni caso."
+      ]
+    },
+    {
+      id: "casimira", nombre: "Casimira", emoji: "🍸", casino: true,
+      conducta: "cliente_bar", x: 2, y: 7, dir: 1,
+      aspecto: { peinado: "melena", pelo: "rojo", piel: "crema",
+                 camiseta: "morado", pantalon: "negro", zapatos: "rojo" },
+      frases: [
+        "Me planto.",
+        "Camarero, otra limonada.",
+        "Este taburete da suerte.",
+        "Yo solo vengo por el ambiente.",
+        "Desde aquí se ve todo el casino."
+      ],
+      saludos: [
+        "Hola, cielo. Yo de aquí no me muevo: este taburete da suerte. Soy Casimira.",
+        "¿Tú también vienes por el ambiente? Siéntate, que la barra es grande."
+      ],
+      temas: [
+        { claves: ["hola", "buenas", "que tal", "hey"],
+          respuestas: ["Hola, cielo. La limonada de esta barra es lo mejor del casino."] },
+        { claves: ["jugar", "apostar", "juego", "dados", "ruleta", "blackjack", "tragaperras"],
+          respuestas: ["Yo ya no juego: me planto. Con mirar a los que pierden me entretengo igual.",
+                       "Los dados son honrados: te arruinan más rápido y no te hacen esperar."] },
+        { claves: ["beber", "copa", "bar", "barra", "limonada"],
+          respuestas: ["Aquí solo sirven limonada, cielo. Es un casino muy familiar."] },
+        { claves: ["adios", "chao", "hasta luego", "me voy"],
+          respuestas: ["Hasta luego, cielo. Yo me quedo vigilando la barra."] }
+      ],
+      genericas: [
+        "Uy, eso mismo decía mi difunto bisabuelo.",
+        "Me planto, cielo. En todo.",
+        "Este taburete lo reservo yo con solo mirarlo."
+      ]
+    }
+  ];
+
   // última genérica dicha por cada NPC (efímero, para no repetir)
   var ultimaGen = {};
+
+  // ---------------- runtime del casino (efímero) ----------------
+
+  var rtCasino = {};
+
+  function runtimeCasino(npc) {
+    var rt = rtCasino[npc.id];
+    if (!rt) {
+      rt = rtCasino[npc.id] = {
+        px: npc.x + 0.5, py: npc.y + 0.5, dir: npc.dir || 0,
+        estado: npc.conducta === "crupier" ? "jugando" : "esperando",
+        t: 1 + Math.random() * 2, destino: null, fase: 0, gz: 0,
+        frase: null, tVisible: 0, tFrase: 2 + Math.random() * 5
+      };
+    }
+    return rt;
+  }
+
+  function siguienteEstadoCasino(npc, rt, ctx) {
+    rt.gz = 0;
+    if (npc.conducta === "cliente_bar" && ctx.sentableEn(npc.x, npc.y) !== null) {
+      rt.estado = "sentado";
+      rt.gz = ctx.sentableEn(npc.x, npc.y);
+      rt.t = 6 + Math.random() * 6;
+      return;
+    }
+    if (npc.conducta === "crupier") {
+      rt.estado = (rt.estado === "jugando") ? "esperando" : "jugando";
+      rt.t = 2.5 + Math.random() * 4;
+      return;
+    }
+    // paseante (y clienta sin taburete): caminar, mirar o jugar
+    var azar = Math.random();
+    if (azar < 0.45) {
+      // paso a una casilla vecina libre, elegida al azar
+      var opciones = [];
+      for (var dy = -1; dy <= 1; dy++)
+        for (var dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          if (dx && dy) continue; // solo pasos rectos, más natural
+          if (ctx.libre(npc.x + dx, npc.y + dy)) {
+            opciones.push({ x: npc.x + dx, y: npc.y + dy });
+          }
+        }
+      if (opciones.length) {
+        rt.destino = opciones[(Math.random() * opciones.length) | 0];
+        rt.estado = "caminando";
+        return;
+      }
+      rt.estado = "esperando";
+      rt.t = 1.5 + Math.random() * 2;
+    } else if (azar < 0.75) {
+      rt.estado = "esperando";
+      rt.t = 1.5 + Math.random() * 3;
+    } else {
+      rt.estado = "jugando";
+      rt.t = 3 + Math.random() * 4;
+    }
+  }
+
+  // Lo llama Sala en cada frame cuando la sala cargada es el
+  // casino. ctx = { libre(x,y), sentableEn(x,y) }.
+  function tickCasino(dt, ctx) {
+    CASINO.forEach(function (npc) {
+      var rt = runtimeCasino(npc);
+      // frases de ambiente en burbuja
+      if (rt.tVisible > 0) rt.tVisible -= dt;
+      rt.tFrase -= dt;
+      if (rt.tFrase <= 0) {
+        rt.frase = npc.frases[(Math.random() * npc.frases.length) | 0];
+        rt.tVisible = 3.2;
+        rt.tFrase = 8 + Math.random() * 10;
+      }
+      // estados
+      if (rt.estado === "caminando" && rt.destino) {
+        rt.fase += dt * 10;
+        var ox = rt.destino.x + 0.5, oy = rt.destino.y + 0.5;
+        var dx = ox - rt.px, dy = oy - rt.py;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (Math.abs(dx) > Math.abs(dy) + 0.001) rt.dir = dx > 0 ? 0 : 2;
+        else if (Math.abs(dy) > 0.001) rt.dir = dy > 0 ? 1 : 3;
+        var paso = 1.5 * dt;
+        if (paso >= dist) {
+          npc.x = rt.destino.x;
+          npc.y = rt.destino.y;
+          rt.px = ox;
+          rt.py = oy;
+          rt.destino = null;
+          rt.fase = 0;
+          rt.estado = "esperando";
+          rt.t = 1 + Math.random() * 2.5;
+        } else {
+          rt.px += dx / dist * paso;
+          rt.py += dy / dist * paso;
+        }
+      } else {
+        // la clienta se levanta si le quitan el taburete
+        if (rt.estado === "sentado" && ctx.sentableEn(npc.x, npc.y) === null) {
+          rt.estado = "esperando";
+          rt.gz = 0;
+          rt.t = 0.5;
+        }
+        rt.t -= dt;
+        if (rt.t <= 0) siguienteEstadoCasino(npc, rt, ctx);
+      }
+    });
+  }
+
+  function estadoCasino(id) {
+    var npc = porId(id);
+    return npc && npc.casino ? runtimeCasino(npc).estado : null;
+  }
+
+  function fraseCasino(id) {
+    var npc = porId(id);
+    return npc && npc.casino ? runtimeCasino(npc).frase : null;
+  }
 
   // ---------------- visitante del día ----------------
 
@@ -340,7 +568,7 @@ var Npcs = (function () {
 
   // ---------------- consultas ----------------
 
-  function lista() { return FIJOS.concat(VISITANTES); }
+  function lista() { return FIJOS.concat(VISITANTES).concat(CASINO); }
 
   function porId(id) {
     var todos = lista();
@@ -350,6 +578,9 @@ var Npcs = (function () {
 
   function enSala(iSala) {
     var ns = FIJOS.filter(function (n) { return n.sala === iSala; });
+    // los NPC del casino viven en la sala de tipo "casino"
+    var s = (window.Juego && Juego.salas) ? Juego.salas()[iSala] : null;
+    if (s && s.tipo === "casino") ns = ns.concat(CASINO);
     var v = visitanteActual();
     if (v && v.sala === iSala) ns.push(v);
     return ns;
@@ -363,27 +594,63 @@ var Npcs = (function () {
     return null;
   }
 
+  // posición de dibujo (los del casino se mueven entre casillas)
+  function posDe(npc) {
+    if (npc.casino) {
+      var rt = runtimeCasino(npc);
+      return { x: rt.px, y: rt.py };
+    }
+    return { x: npc.x + 0.5, y: npc.y + 0.5 };
+  }
+
   // caja envolvente para el orden de pintado de la sala
   function caja(npc) {
-    var m = 0.34, cx = npc.x + 0.5, cy = npc.y + 0.5;
-    return { x0: cx - m, y0: cy - m, z0: 0, x1: cx + m, y1: cy + m, z1: 1.7 };
+    var m = 0.34, pos = posDe(npc);
+    return { x0: pos.x - m, y0: pos.y - m, z0: 0, x1: pos.x + m, y1: pos.y + m, z1: 1.7 };
   }
 
   // ---------------- dibujo ----------------
 
   function dibujar(ctx, npc, t) {
     var previo = Juego.aspecto();
+    var pos = posDe(npc);
+    var pose = npc.baila ? "bailando" : "parado";
+    var fase = npc.baila ? t * 8 : 0;
+    var dir = npc.dir || 0;
+    var gz = 0;
+    var rt = null;
+    if (npc.casino) {
+      rt = runtimeCasino(npc);
+      dir = rt.dir;
+      if (rt.estado === "caminando") { pose = "andando"; fase = rt.fase; }
+      else if (rt.estado === "sentado") { pose = "sentado"; gz = rt.gz; }
+    }
     Avatar.ponAspecto(npc.aspecto);
     Avatar.dibujar(ctx, {
-      x: npc.x + 0.5, y: npc.y + 0.5, dir: npc.dir || 0,
-      pose: npc.baila ? "bailando" : "parado",
-      fase: npc.baila ? t * 8 : 0, gz: 0
+      x: pos.x, y: pos.y, dir: dir,
+      pose: pose, fase: fase, gz: gz
     });
     Avatar.ponAspecto(previo);
 
+    // frase de ambiente en burbuja (NPCs del casino)
+    if (rt && rt.tVisible > 0 && rt.frase) {
+      var pb = Iso.proyectar(pos.x, pos.y, 2.15);
+      ctx.font = "11px 'Trebuchet MS', 'Segoe UI', sans-serif";
+      var wb = ctx.measureText(rt.frase).width + 14;
+      var alfaB = Math.min(1, rt.tVisible / 0.4);
+      ctx.globalAlpha = alfaB;
+      ctx.fillStyle = "rgba(242, 239, 230, 0.94)";
+      ctx.fillRect(pb.x - wb / 2, pb.y - 17, wb, 17);
+      ctx.fillStyle = "#343740";
+      ctx.textAlign = "center";
+      ctx.fillText(rt.frase, pb.x, pb.y - 5);
+      ctx.textAlign = "left";
+      ctx.globalAlpha = 1;
+    }
+
     // nombre flotante sobre la cabeza
     var etiqueta = npc.nombre + (npc.visita ? " · de visita" : "");
-    var p = Iso.proyectar(npc.x + 0.5, npc.y + 0.5, 1.75);
+    var p = Iso.proyectar(pos.x, pos.y, 1.75);
     ctx.font = "bold 10px 'Trebuchet MS', 'Segoe UI', sans-serif";
     var w = ctx.measureText(etiqueta).width + 12;
     ctx.fillStyle = npc.visita ? "rgba(88, 60, 32, 0.78)" : "rgba(35, 37, 44, 0.72)";
@@ -432,6 +699,9 @@ var Npcs = (function () {
     saludoDe: saludoDe,
     responder: responder,
     visitanteActual: visitanteActual,
-    forzarVisita: forzarVisita
+    forzarVisita: forzarVisita,
+    tickCasino: tickCasino,
+    estadoCasino: estadoCasino,
+    fraseCasino: fraseCasino
   };
 })();

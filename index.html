@@ -89,6 +89,7 @@
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/minijuegos.js"></script>
+<script src="js/casino.js"></script>
 <script src="js/guardado.js"></script>
 <script src="js/ambiente.js"></script>
 <script>
@@ -114,6 +115,7 @@
   Sala.cargar(Juego.salaActual());
   UI.iniciar();
   Minijuegos.iniciar();
+  Casino.iniciar();
   Ambiente.iniciar();
 
   // responsive: el panel lateral se ancla sobre el HUD (var CSS)
@@ -402,7 +404,7 @@
     paso5("cargar devuelve datos", !!datos);
     paso5("créditos persistidos", datos && datos.creditos === cG);
     paso5("aspecto persistido", datos && datos.avatar.camiseta === "rojo");
-    paso5("las 5 salas persistidas", datos && datos.salas.length === 5);
+    paso5("las 6 salas persistidas", datos && datos.salas.length === 6);
 
     // migración: partida "antigua" sin comida y sin ordenador fijo
     delete datos.comida;
@@ -691,6 +693,125 @@
     paso10("Ioana organiza la sala", Npcs.enSala(4)[0].nombre === "Ioana");
 
     cajaTexto(log10.join("\n"));
+  }
+
+  // ---- casino ----
+
+  function montarCasino() {
+    Juego.desbloquearSala(5);
+    Juego.cambiarSala(5);
+    Sala.cargar(Juego.salaActual());
+  }
+
+  if (prueba === "casino") {
+    montarCasino();
+  } else if (prueba && prueba.indexOf("casino_") === 0 && prueba !== "casino_flujo") {
+    montarCasino();
+    Casino.abrir(prueba.slice("casino_".length)); // casino_dados, casino_ruleta...
+  } else if (prueba === "casino_flujo") {
+    var log11 = [];
+    function paso11(nombre, ok) { log11.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    // sala, migración y catálogo
+    paso11("la sala casino existe",
+      Juego.salas().some(function (s) { return s.tipo === "casino"; }));
+    var copiaC = JSON.parse(JSON.stringify(Juego.estado()));
+    copiaC.salas = copiaC.salas.filter(function (s) { return s.tipo !== "casino"; });
+    delete copiaC.casino;
+    Juego.iniciar(copiaC);
+    paso11("la migración añade el casino y sus estadísticas",
+      Juego.salas().some(function (s) { return s.tipo === "casino"; }) &&
+      Juego.estado().casino.jugadas === 0);
+    paso11("los muebles del casino están en el catálogo",
+      !!Furnis.get("mesa_blackjack") && !!Furnis.get("ruleta_casino") &&
+      !!Furnis.get("tragaperras") && !!Furnis.get("mesa_dados") && !!Furnis.get("mesa_poker"));
+    paso11("son de zona casino",
+      Furnis.get("ruleta_casino").zona === "casino" && Furnis.get("sofa_cuero").zona === "casino");
+
+    // exclusividad de zona (el Salón está cargado)
+    paso11("mueble del casino fuera del casino = no", !Sala.validar("sofa_cuero", 4, 4, 0));
+    paso11("cartel del casino fuera = no", !Sala.validarPared("cartel_casino", "x", 6));
+    var cC = Juego.creditos();
+    paso11("se desbloquea pagando 3.000",
+      Juego.desbloquearSala(5) && Juego.creditos() === cC - 3000);
+    paso11("se puede entrar", Juego.cambiarSala(5));
+    Sala.cargar(Juego.salaActual());
+    var idsCasino = Juego.salaActual().furnis.map(function (f) { return f.id; });
+    paso11("viene amueblado (blackjack, ruleta, tragaperras, dados, póker, barra)",
+      ["mesa_blackjack", "ruleta_casino", "tragaperras", "mesa_dados", "mesa_poker", "barra_casino"]
+        .every(function (id) { return idsCasino.indexOf(id) !== -1; }));
+    paso11("mueble normal en el casino = no", !Sala.validar("mesa_madera", 5, 6, 0));
+    paso11("mueble del casino sí se coloca", Sala.validar("sofa_cuero", 5, 6, 0));
+    paso11("cartel del casino en la pared", Sala.validarPared("cartel_casino", "x", 7));
+    paso11("cuadro normal en la pared del casino = no", !Sala.validarPared("cuadro_abstracto", "x", 7));
+
+    // dados
+    paso11("dados: menor que 7 paga x2",
+      Casino.resolverDados(1, 2, "menor") === 2 && Casino.resolverDados(3, 4, "menor") === 0);
+    paso11("dados: justo 7 paga x5",
+      Casino.resolverDados(3, 4, "siete") === 5 && Casino.resolverDados(2, 4, "siete") === 0);
+    paso11("dados: mayor que 7 paga x2",
+      Casino.resolverDados(6, 6, "mayor") === 2 && Casino.resolverDados(1, 1, "mayor") === 0);
+
+    // ruleta
+    paso11("ruleta: el 0 hace perder las apuestas simples",
+      Casino.resolverRuleta(0, "rojo") === 0 && Casino.resolverRuleta(0, "negro") === 0 &&
+      Casino.resolverRuleta(0, "par") === 0 && Casino.resolverRuleta(0, "impar") === 0);
+    paso11("ruleta: rojo y negro pagan x2",
+      Casino.resolverRuleta(1, "rojo") === 2 && Casino.resolverRuleta(2, "negro") === 2 &&
+      Casino.resolverRuleta(2, "rojo") === 0);
+    paso11("ruleta: par e impar pagan x2",
+      Casino.resolverRuleta(8, "par") === 2 && Casino.resolverRuleta(9, "impar") === 2);
+    paso11("ruleta: el número acertado paga x35",
+      Casino.resolverRuleta(17, "numero", 17) === 35 && Casino.resolverRuleta(16, "numero", 17) === 0);
+
+    // tragaperras
+    paso11("tragaperras: triples según la tabla",
+      Casino.resolverTragaperras(["🍒", "🍒", "🍒"]) === 3 &&
+      Casino.resolverTragaperras(["7️⃣", "7️⃣", "7️⃣"]) === 10 &&
+      Casino.resolverTragaperras(["💎", "💎", "💎"]) === 20);
+    paso11("tragaperras: dos iguales x1.5",
+      Casino.resolverTragaperras(["🍒", "🍒", "🍋"]) === 1.5 &&
+      Casino.resolverTragaperras(["🍋", "💎", "🍋"]) === 1.5);
+    paso11("tragaperras: sin pareja pierde",
+      Casino.resolverTragaperras(["🍒", "🍋", "🔔"]) === 0);
+
+    // blackjack
+    paso11("blackjack: el as vale 11 u 1",
+      Casino.valorMano([{ v: 11 }, { v: 10 }]) === 21 &&
+      Casino.valorMano([{ v: 11 }, { v: 10 }, { v: 5 }]) === 16);
+    paso11("blackjack: la baraja tiene 52 cartas", Casino.crearBaraja().length === 52);
+
+    // economía: cobro por adelantado, premio y estadísticas
+    var c1C = Juego.creditos();
+    paso11("la apuesta se cobra por adelantado",
+      Juego.apostarCasino(100) && Juego.creditos() === c1C - 100);
+    Juego.premioCasino(200);
+    paso11("el premio se abona", Juego.creditos() === c1C + 100);
+    paso11("apostar más que los créditos = no", !Juego.apostarCasino(Juego.creditos() + 1));
+    paso11("las estadísticas quedan en la partida (guardable)",
+      Juego.estado().casino.jugadas === 1 &&
+      Juego.estado().casino.apostado === 100 && Juego.estado().casino.ganado === 200);
+
+    // NPCs de ambiente
+    paso11("el casino tiene 3 NPCs de ambiente", Npcs.enSala(5).length === 3);
+    var ctxNpc = {
+      libre: function () { return false; },
+      sentableEn: function (x, y) { return (x === 2 && y === 7) ? 0.68 : null; }
+    };
+    Npcs.tickCasino(3, ctxNpc);
+    Npcs.tickCasino(3, ctxNpc);
+    paso11("la clienta del bar se sienta", Npcs.estadoCasino("casimira") === "sentado");
+    paso11("el crupier no pasea",
+      ["jugando", "esperando"].indexOf(Npcs.estadoCasino("dolores")) !== -1);
+    Npcs.tickCasino(10, ctxNpc);
+    paso11("los NPC sueltan frases de ambiente", typeof Npcs.fraseCasino("rufino") === "string");
+    var doloresC = Npcs.porId("dolores");
+    paso11("los NPC del casino conversan",
+      doloresC.genericas.indexOf(Npcs.responder(doloresC, "xyzzy")) !== -1);
+    paso11("no se coloca un mueble sobre un NPC", !Sala.validar("sofa_cuero", 6, 6, 0));
+
+    cajaTexto(log11.join("\n"));
   }
 })();
 </script>

@@ -127,6 +127,7 @@ var Furnis = (function () {
     ["pared", "Pared"],
     ["jardin", "Jardín"],
     ["baile", "Fiesta"],
+    ["casino", "Casino"],
     ["otros", "Otros"],
   ];
 
@@ -1376,6 +1377,284 @@ var Furnis = (function () {
       pieza(ctx, pared, u + 0.72, 1.12, 0.1, 0.2, 0.055, "verde");
     },
     dibujar: function () {}, // no se usa: los de pared tienen dibujarPared
+  });
+
+  // ==========================================================
+  // CASINO — muebles exclusivos de la sala casino. Todos llevan
+  // zona: "casino": solo se pueden colocar allí, y los muebles
+  // normales no pueden entrar (lo valida Sala.validar). Los que
+  // tienen juegoCasino abren su juego al pulsarlos en modo
+  // pasear (mesa de póker: aún solo decorativa).
+  // ==========================================================
+
+  def({
+    id: "mesa_blackjack",
+    nombre: "Mesa de blackjack",
+    categoria: "casino",
+    zona: "casino",
+    juegoCasino: "blackjack",
+    precio: 900,
+    tam: [2, 1],
+    rotaciones: 4,
+    altura: 1.0,
+    dibujar: function (p) {
+      patas4(p, 0.1, 0.1, 1.9, 0.9, 0.14, 0.8, "madera_oscura");
+      p.cubo(0, 0, 0.8, 2, 1, 0.15, "madera_oscura");             // tablero
+      p.cubo(0.1, 0.1, 0.95, 1.8, 0.8, 0.03, "verde_oscuro");     // tapete
+      p.cubo(0.1, 0.1, 0.95, 1.8, 0.07, 0.035, "amarillo");       // ribete dorado
+      p.cubo(0.5, 0.55, 0.98, 0.22, 0.16, 0.02, "blanco");        // cartas
+      p.cubo(0.78, 0.5, 0.98, 0.22, 0.16, 0.02, "blanco");
+      p.cilindro(1.5, 0.38, 0.98, 0.07, 0.06, "rojo");            // fichas
+      p.cilindro(1.32, 0.3, 0.98, 0.07, 0.04, "azul");
+    },
+  });
+
+  def({
+    id: "ruleta_casino",
+    nombre: "Ruleta",
+    categoria: "casino",
+    zona: "casino",
+    juegoCasino: "ruleta",
+    precio: 1200,
+    tam: [2, 2],
+    rotaciones: 4,
+    altura: 1.3,
+    dibujar: function (p) {
+      p.cubo(0.1, 0.1, 0, 1.8, 1.8, 0.85, "madera_oscura");        // cuerpo
+      p.cubo(0, 0, 0.85, 2, 2, 0.15, "madera_oscura");             // tablero
+      p.cubo(0.08, 0.08, 1.0, 1.84, 1.84, 0.02, "verde_oscuro");   // tapete
+      p.cilindro(0.62, 1.0, 1.02, 0.5, 0.08, "madera");            // aro
+      p.cilindro(0.62, 1.0, 1.1, 0.4, 0.05, "rojo");               // rueda
+      p.cilindro(0.62, 1.0, 1.15, 0.28, 0.04, "negro");
+      p.cilindro(0.62, 1.0, 1.19, 0.08, 0.1, "amarillo");          // eje dorado
+      p.cubo(1.3, 0.35, 1.02, 0.5, 0.3, 0.01, "rojo");             // paño de apuestas
+      p.cubo(1.3, 0.85, 1.02, 0.5, 0.3, 0.01, "negro");
+      p.cilindro(1.55, 1.5, 1.02, 0.07, 0.06, "amarillo");         // fichas
+      p.cilindro(1.38, 1.55, 1.02, 0.07, 0.04, "rojo");
+    },
+  });
+
+  def({
+    id: "tragaperras",
+    nombre: "Tragaperras",
+    categoria: "casino",
+    zona: "casino",
+    juegoCasino: "tragaperras",
+    precio: 750,
+    tam: [1, 1],
+    rotaciones: 4,
+    altura: 1.9,
+    luz: { x: 0.82, y: 0.5, z: 1.0, radio: 42, color: [255, 205, 110] },
+    dibujar: function (p) {
+      p.cubo(0.15, 0.2, 0, 0.7, 0.6, 1.1, "rojo");                 // cuerpo
+      p.cubo(0.12, 0.16, 1.1, 0.76, 0.68, 0.5, "rojo");            // cabezal
+      p.cubo(0.1, 0.14, 1.6, 0.8, 0.72, 0.2, "amarillo");          // marquesina
+      p.cubo(0.82, 0.28, 0.72, 0.06, 0.44, 0.34, "blanco");        // ventana de rodillos
+      p.cubo(0.86, 0.32, 0.8, 0.04, 0.1, 0.14, "rojo");            // símbolos
+      p.cubo(0.86, 0.45, 0.8, 0.04, 0.1, 0.14, "amarillo");
+      p.cubo(0.86, 0.58, 0.8, 0.04, 0.1, 0.14, "turquesa");
+      p.cubo(0.82, 0.36, 0.36, 0.08, 0.28, 0.12, "gris_oscuro");   // bandeja de premios
+      p.cilindro(0.5, 0.1, 0.95, 0.03, 0.42, "gris");              // palanca
+      p.cilindro(0.5, 0.1, 1.37, 0.07, 0.09, "rojo");              // bola de la palanca
+    },
+  });
+
+  def({
+    id: "mesa_dados",
+    nombre: "Mesa de dados",
+    categoria: "casino",
+    zona: "casino",
+    juegoCasino: "dados",
+    precio: 800,
+    tam: [2, 1],
+    rotaciones: 2,
+    altura: 1.0,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.1, 0, 1.9, 0.8, 0.7, "madera_oscura");        // cuerpo
+      p.cubo(0, 0, 0.7, 2, 0.14, 0.3, "madera_oscura");            // bordes altos
+      p.cubo(0, 0.86, 0.7, 2, 0.14, 0.3, "madera_oscura");
+      p.cubo(0, 0.14, 0.7, 0.14, 0.72, 0.3, "madera_oscura");
+      p.cubo(1.86, 0.14, 0.7, 0.14, 0.72, 0.3, "madera_oscura");
+      p.cubo(0.14, 0.14, 0.7, 1.72, 0.72, 0.04, "verde_oscuro");   // tapete hundido
+      p.cubo(0.14, 0.14, 0.96, 1.72, 0.04, 0.04, "amarillo");      // moldura dorada
+      p.cubo(0.8, 0.4, 0.74, 0.15, 0.15, 0.15, "blanco");          // dados
+      p.cubo(1.05, 0.52, 0.74, 0.15, 0.15, 0.15, "blanco");
+    },
+  });
+
+  def({
+    id: "mesa_poker",
+    nombre: "Mesa de póker",
+    categoria: "casino",
+    zona: "casino",
+    juegoCasino: "poker",
+    precio: 1000,
+    tam: [2, 2],
+    altura: 1.0,
+    dibujar: function (p) {
+      p.cilindro(1.0, 1.0, 0, 0.3, 0.1, "madera_oscura");          // base
+      p.cilindro(1.0, 1.0, 0.1, 0.16, 0.7, "madera_oscura");       // pie central
+      p.cilindro(1.0, 1.0, 0.8, 0.95, 0.12, "madera_oscura");      // canto
+      p.cilindro(1.0, 1.0, 0.92, 0.82, 0.04, "verde_oscuro");      // tapete
+      p.cubo(0.6, 0.9, 0.96, 0.2, 0.14, 0.02, "blanco");           // cartas
+      p.cubo(1.2, 0.78, 0.96, 0.2, 0.14, 0.02, "blanco");
+      p.cilindro(1.0, 1.35, 0.96, 0.07, 0.08, "rojo");             // fichas
+      p.cilindro(0.75, 1.28, 0.96, 0.07, 0.05, "azul");
+      p.cilindro(1.28, 1.25, 0.96, 0.07, 0.06, "amarillo");
+    },
+  });
+
+  def({
+    id: "barra_casino",
+    nombre: "Barra del casino",
+    categoria: "casino",
+    zona: "casino",
+    precio: 400,
+    tam: [2, 1],
+    rotaciones: 4,
+    altura: 1.15,
+    luz: { x: 1, y: 0.4, z: 1.2, radio: 44, color: [255, 205, 110] },
+    dibujar: function (p) {
+      p.cubo(0.05, 0.2, 0, 1.9, 0.6, 0.95, "madera_oscura");       // cuerpo
+      p.cubo(0, 0.12, 0.95, 2, 0.8, 0.12, "madera");               // encimera
+      p.cubo(0.05, 0.16, 0.48, 1.9, 0.05, 0.09, "amarillo");       // moldura dorada
+      p.cilindro(0.4, 0.5, 1.07, 0.06, 0.3, "verde_oscuro");       // botellas
+      p.cilindro(0.95, 0.5, 1.07, 0.06, 0.36, "rojo");
+      p.cilindro(1.55, 0.5, 1.07, 0.06, 0.26, "azul");
+      p.cilindro(1.25, 0.42, 1.07, 0.05, 0.12, "blanco");          // copa
+    },
+  });
+
+  def({
+    id: "taburete_casino",
+    nombre: "Taburete de cuero",
+    categoria: "casino",
+    zona: "casino",
+    precio: 90,
+    tam: [1, 1],
+    altura: 0.8,
+    sentable: "sentado",
+    alturaAsiento: 0.68,
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.24, 0.06, "amarillo");             // base dorada
+      p.cilindro(0.5, 0.5, 0.06, 0.05, 0.5, "amarillo");
+      p.cilindro(0.5, 0.5, 0.56, 0.26, 0.14, "marron");            // asiento de cuero
+    },
+  });
+
+  def({
+    id: "sofa_cuero",
+    nombre: "Sofá de cuero",
+    categoria: "casino",
+    zona: "casino",
+    precio: 320,
+    tam: [1, 2],
+    rotaciones: 4,
+    altura: 1.05,
+    sentable: "sentado",
+    alturaAsiento: 0.5,
+    dibujar: function (p) {
+      p.cubo(0.05, 0.06, 0, 0.14, 0.14, 0.14, "amarillo");         // patas doradas
+      p.cubo(0.05, 1.8, 0, 0.14, 0.14, 0.14, "amarillo");
+      p.cubo(0, 0, 0.14, 1, 2, 0.3, "marron");                     // base
+      p.cubo(0, 0, 0.44, 0.26, 2, 0.58, "marron");                 // respaldo
+      p.cubo(0.26, 0, 0.44, 0.74, 0.16, 0.32, "madera_oscura");    // brazos
+      p.cubo(0.26, 1.84, 0.44, 0.74, 0.16, 0.32, "madera_oscura");
+      p.cubo(0.3, 0.2, 0.44, 0.64, 0.72, 0.1, "madera");           // cojines
+      p.cubo(0.3, 1.08, 0.44, 0.64, 0.72, 0.1, "madera");
+    },
+  });
+
+  def({
+    id: "alfombra_casino_verde",
+    nombre: "Alfombra verde del casino",
+    categoria: "casino",
+    zona: "casino",
+    precio: 120,
+    tam: [2, 2],
+    altura: 0.06,
+    capa: "alfombra",
+    bloquea: false,
+    dibujar: function (p) {
+      p.plano(0, 0, 0.02, 2, 2, "amarillo");
+      p.plano(0.14, 0.14, 0.035, 1.72, 1.72, "verde_oscuro");
+      p.plano(0.85, 0.85, 0.05, 0.3, 0.3, "amarillo");             // rombo central
+    },
+  });
+
+  def({
+    id: "alfombra_casino_roja",
+    nombre: "Alfombra roja del casino",
+    categoria: "casino",
+    zona: "casino",
+    precio: 120,
+    tam: [2, 2],
+    altura: 0.06,
+    capa: "alfombra",
+    bloquea: false,
+    dibujar: function (p) {
+      p.plano(0, 0, 0.02, 2, 2, "amarillo");
+      p.plano(0.14, 0.14, 0.035, 1.72, 1.72, "rojo");
+      p.plano(0.85, 0.85, 0.05, 0.3, 0.3, "amarillo");             // rombo central
+    },
+  });
+
+  def({
+    id: "lampara_casino",
+    nombre: "Lámpara clásica",
+    categoria: "casino",
+    zona: "casino",
+    precio: 160,
+    tam: [1, 1],
+    altura: 1.9,
+    luz: { x: 0.5, y: 0.5, z: 1.55, radio: 80, color: [255, 200, 110] },
+    dibujar: function (p) {
+      p.cilindro(0.5, 0.5, 0, 0.26, 0.06, "madera_oscura");        // base
+      p.cilindro(0.5, 0.5, 0.06, 0.045, 1.3, "amarillo");          // poste dorado
+      p.cilindro(0.5, 0.5, 1.36, 0.3, 0.4, "rojo");                // pantalla granate
+      p.cilindro(0.5, 0.5, 1.76, 0.08, 0.06, "amarillo");          // remate
+    },
+  });
+
+  def({
+    id: "cartel_casino",
+    nombre: "Cartel luminoso",
+    categoria: "casino",
+    zona: "casino",
+    precio: 200,
+    tam: [1, 1],
+    altura: 0.9,
+    capa: "pared",
+    bloquea: false,
+    zPared: 1.08,
+    altoPared: 0.78,
+    dibujarPared: function (ctx, pared, u) {
+      pieza(ctx, pared, u + 0.05, 1.08, 0.9, 0.78, 0.04, "negro");     // panel
+      pieza(ctx, pared, u + 0.1, 1.13, 0.8, 0.12, 0.05, "amarillo");   // franja inferior
+      pieza(ctx, pared, u + 0.16, 1.36, 0.16, 0.38, 0.055, "rojo");    // 7 7 7
+      pieza(ctx, pared, u + 0.42, 1.36, 0.16, 0.38, 0.055, "amarillo");
+      pieza(ctx, pared, u + 0.68, 1.36, 0.16, 0.38, 0.055, "rojo");
+      pieza(ctx, pared, u + 0.1, 1.78, 0.08, 0.06, 0.055, "blanco");   // bombillas
+      pieza(ctx, pared, u + 0.46, 1.78, 0.08, 0.06, 0.055, "blanco");
+      pieza(ctx, pared, u + 0.82, 1.78, 0.08, 0.06, 0.055, "blanco");
+    },
+    dibujar: function () {}, // no se usa: los de pared tienen dibujarPared
+  });
+
+  def({
+    id: "planta_casino",
+    nombre: "Palmera de salón",
+    categoria: "casino",
+    zona: "casino",
+    precio: 110,
+    tam: [1, 1],
+    altura: 1.5,
+    dibujar: function (p) {
+      p.cubo(0.28, 0.28, 0, 0.44, 0.44, 0.35, "amarillo");         // maceta dorada
+      p.cilindro(0.5, 0.5, 0.35, 0.05, 0.5, "madera_oscura");      // tronco
+      p.cilindro(0.5, 0.5, 0.85, 0.32, 0.26, "verde_oscuro");      // copa
+      p.cilindro(0.5, 0.5, 1.11, 0.2, 0.24, "verde");
+    },
   });
 
   // ==========================================================

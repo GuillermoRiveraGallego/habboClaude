@@ -716,6 +716,272 @@ button.mini.activo {
   margin: 12px 0 14px;
 }
 
+/* ============ CASINO ============ */
+
+#modal-fondo-casino {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 18, 12, 0.68);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9;
+}
+
+#modal-casino {
+  width: 560px;
+  max-width: 94%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  background: #1c241c;
+  border: 3px solid #e4c25a;
+  border-radius: 14px;
+  box-shadow: 0 0 42px rgba(228, 194, 90, 0.25), 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.ca-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #263224;
+  padding: 10px 14px;
+  font-weight: bold;
+  color: #e4c25a;
+  border-bottom: 2px solid #4a5a42;
+}
+
+#ca-cerrar {
+  background: #34402f;
+  border: 2px solid #5b6b4e;
+  color: #f2efe6;
+  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#ca-contenido {
+  padding: 14px 16px 12px;
+  overflow-y: auto;
+}
+
+#ca-contenido::-webkit-scrollbar { width: 8px; }
+#ca-contenido::-webkit-scrollbar-thumb { background: #4a5a42; border-radius: 4px; }
+
+.ca-pie {
+  padding: 8px 14px;
+  border-top: 2px solid #4a5a42;
+  background: #212a1f;
+  color: #e4c25a;
+  font-size: 12px;
+}
+
+.ca-apuesta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+#ca-apuesta {
+  background: #141a12;
+  border: 2px solid #5b6b4e;
+  color: #f2efe6;
+  font-size: 16px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  width: 90px;
+  text-align: center;
+}
+
+.ca-ficha {
+  background: #2c3628;
+  border: 2px solid #e4c25a;
+  color: #e4c25a;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.ca-ficha:hover { background: #3a4834; }
+
+.ca-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.ca-opcion {
+  background: #2c3628;
+  border: 2px solid #5b6b4e;
+  color: #f2efe6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.ca-opcion b { color: #e4c25a; }
+.ca-opcion:hover:not(:disabled) { background: #3a4834; border-color: #e4c25a; }
+.ca-opcion:disabled { opacity: 0.55; cursor: default; }
+.ca-opcion.chica { padding: 7px 10px; font-size: 13px; }
+
+.ca-numero-linea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 4px 0 8px;
+}
+
+#ca-numero {
+  background: #141a12;
+  border: 2px solid #5b6b4e;
+  color: #f2efe6;
+  font-size: 15px;
+  font-family: inherit;
+  padding: 5px 8px;
+  border-radius: 8px;
+  width: 64px;
+  text-align: center;
+}
+
+.ca-dados {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 58px;
+  margin: 6px 0;
+  min-height: 70px;
+  color: #f2efe6;
+}
+
+.ca-ruleta { text-align: center; margin: 8px 0; }
+
+.ca-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #e4c25a;
+  font-size: 26px;
+  font-weight: bold;
+  color: #f2efe6;
+}
+
+.ca-num.rojo { background: #c95349; }
+.ca-num.negro { background: #343740; }
+.ca-num.verde { background: #4f7c48; }
+
+.ca-rodillos {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.ca-rodillos span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  font-size: 40px;
+  background: #141a12;
+  border: 2px solid #5b6b4e;
+  border-radius: 12px;
+}
+
+.ca-rodillos span.parado { border-color: #e4c25a; }
+
+.ca-tabla-pagos {
+  text-align: center;
+  font-size: 12px;
+  color: #a3a8af;
+  margin-top: 10px;
+  line-height: 1.7;
+}
+
+.ca-tabla-pagos span { white-space: nowrap; }
+
+.ca-bj-fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.ca-bj-quien {
+  min-width: 92px;
+  font-size: 13px;
+  color: #e4c25a;
+  font-weight: bold;
+}
+
+.ca-carta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 46px;
+  padding: 0 4px;
+  background: #f2efe6;
+  color: #343740;
+  border-radius: 6px;
+  border: 1px solid #a3a8af;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.ca-carta.roja { color: #c95349; }
+
+.ca-carta.dorso {
+  background: #4a5a8a;
+  color: #93badb;
+  font-size: 26px;
+}
+
+.ca-resultado {
+  text-align: center;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #5b6b4e;
+  background: #212a1f;
+}
+
+.ca-resultado.gana { border-color: #e4c25a; }
+.ca-resultado.pierde { border-color: #c95349; }
+
+.ca-veredicto {
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.ca-resultado.gana .ca-veredicto { color: #e4c25a; }
+.ca-resultado.pierde .ca-veredicto { color: #c95349; }
+.ca-resultado .detalle { font-size: 13px; color: #cfd3da; margin-bottom: 10px; }
+
 /* ============ CHAT CON NPCS ============ */
 
 #panel-chat {

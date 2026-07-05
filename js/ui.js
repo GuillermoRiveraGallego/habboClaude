@@ -112,14 +112,30 @@ var UI = (function () {
 
   // --- catálogo ---
 
+  // En el casino solo se ve (y se usa) el mobiliario del casino;
+  // fuera de él, ese mobiliario desaparece del catálogo y del
+  // inventario (la exclusividad la valida también Sala.validar).
+  function esSalaCasino() {
+    return Juego.salaActual().tipo === "casino";
+  }
+
+  function enZonaActual(f) {
+    return esSalaCasino() ? f.zona === "casino" : f.zona !== "casino";
+  }
+
   function pintarCatalogo() {
-    elPanelTitulo.textContent = "🛒 Catálogo";
+    elPanelTitulo.textContent = esSalaCasino() ? "🎰 Catálogo del casino" : "🛒 Catálogo";
     elPanelPestanas.innerHTML = "";
     elPanelContenido.innerHTML = "";
 
-    Furnis.categorias().forEach(function (c) {
-      var hay = Furnis.lista().some(function (f) { return f.categoria === c[0]; });
-      if (!hay) return;
+    var visibles = Furnis.lista().filter(enZonaActual);
+    var cats = Furnis.categorias().filter(function (c) {
+      return visibles.some(function (f) { return f.categoria === c[0]; });
+    });
+    if (!cats.some(function (c) { return c[0] === categoriaActiva; }) && cats.length) {
+      categoriaActiva = cats[0][0];
+    }
+    cats.forEach(function (c) {
       var b = document.createElement("button");
       b.textContent = c[1];
       b.classList.toggle("activo", c[0] === categoriaActiva);
@@ -132,7 +148,7 @@ var UI = (function () {
 
     var rejilla = document.createElement("div");
     rejilla.className = "rejilla-panel";
-    Furnis.lista().forEach(function (f) {
+    visibles.forEach(function (f) {
       if (f.categoria !== categoriaActiva) return;
       // furnis de recompensa: visibles pero bloqueados hasta
       // conseguirlos (tareas diarias o mascotas felices)
@@ -169,13 +185,28 @@ var UI = (function () {
   // --- inventario ---
 
   function pintarInventario() {
-    elPanelTitulo.textContent = "📦 Inventario";
+    elPanelTitulo.textContent = esSalaCasino() ? "🎰 Inventario del casino" : "📦 Inventario";
     elPanelPestanas.innerHTML = "";
     elPanelContenido.innerHTML = "";
-    var inv = Juego.inventario();
+    var inv = Juego.inventario().filter(function (inst) {
+      return enZonaActual(Furnis.get(inst.id));
+    });
+    var ocultos = Juego.inventario().length - inv.length;
     if (!inv.length) {
-      elPanelContenido.innerHTML = '<p class="vacio">Tu inventario está vacío. Cuando guardes un mueble de la sala o compres sin colocar, aparecerá aquí.</p>';
+      elPanelContenido.innerHTML = esSalaCasino()
+        ? '<p class="vacio">No tienes muebles del casino guardados. Aquí solo se usan los muebles del casino; los demás te esperan fuera.</p>'
+        : '<p class="vacio">Tu inventario está vacío. Cuando guardes un mueble de la sala o compres sin colocar, aparecerá aquí.</p>' +
+          (ocultos ? '<p class="vacio">(' + ocultos + ' mueble' + (ocultos > 1 ? 's' : '') +
+            ' del casino guardados: se ven al entrar al casino)</p>' : '');
       return;
+    }
+    if (ocultos) {
+      var nota = document.createElement("p");
+      nota.className = "vacio";
+      nota.textContent = esSalaCasino()
+        ? "Solo se muestran los muebles del casino (" + ocultos + " normales ocultos)"
+        : "Los muebles del casino (" + ocultos + ") se ven al entrar al casino";
+      elPanelContenido.appendChild(nota);
     }
     var rejilla = document.createElement("div");
     rejilla.className = "rejilla-panel";
@@ -214,9 +245,11 @@ var UI = (function () {
     Juego.salas().forEach(function (s, i) {
       var div = document.createElement("div");
       div.className = "sala-item" + (i === Juego.indiceSala() ? " actual" : "");
-      var texto = '<div class="nombre">' + (s.tipo === "jardin" ? "🌳 " : "") + s.nombre + '</div>' +
+      var texto = '<div class="nombre">' +
+                  (s.tipo === "jardin" ? "🌳 " : s.tipo === "casino" ? "🎰 " : "") + s.nombre + '</div>' +
                   '<div class="detalle">' + s.ancho + '×' + s.fondo + ' casillas' +
-                  (s.tipo === "jardin" ? ' · zona exterior, hogar de tus mascotas' : '') + '</div>';
+                  (s.tipo === "jardin" ? ' · zona exterior, hogar de tus mascotas' :
+                   s.tipo === "casino" ? ' · juegos de apuestas con tus créditos' : '') + '</div>';
       div.innerHTML = texto;
       if (s.desbloqueada) {
         if (i !== Juego.indiceSala()) {
@@ -227,6 +260,7 @@ var UI = (function () {
             cancelarFantasma();
             cerrarPanelMascota();
             cerrarChat();
+            if (window.Casino) Casino.cerrar();
             Juego.cambiarSala(i);
             Sala.cargar(Juego.salaActual());
             refrescarHud();
@@ -251,8 +285,9 @@ var UI = (function () {
       elPanelContenido.appendChild(div);
     });
 
-    // colores de la sala actual (el jardín es césped y setos)
-    if (Juego.salaActual().tipo !== "jardin") {
+    // colores de la sala actual (el jardín es césped y setos;
+    // el casino tiene su moqueta y sus maderas fijas)
+    if (Juego.salaActual().tipo !== "jardin" && Juego.salaActual().tipo !== "casino") {
       var titulo = document.createElement("h3");
       titulo.textContent = "Colores de esta sala";
       elPanelContenido.appendChild(titulo);
@@ -955,6 +990,13 @@ var UI = (function () {
       alNpc: abrirChat,
       alOrdenador: function () {
         if (window.Minijuegos) Minijuegos.abrir();
+      },
+      alCasino: function (juego) {
+        if (juego === "poker") {
+          avisar("🃏 Póker próximamente", "ok");
+          return;
+        }
+        if (window.Casino) Casino.abrir(juego);
       }
     });
 

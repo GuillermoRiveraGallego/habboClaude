@@ -17,6 +17,8 @@ var Sala = (function () {
 
   function esBaile(s) { return !!(s && s.tipo === "baile"); }
 
+  function esCasino(s) { return !!(s && s.tipo === "casino"); }
+
   // pista central de la sala de baile (margen de 2 casillas)
   function enPista(s, tx, ty) {
     return esBaile(s) &&
@@ -277,6 +279,19 @@ var Sala = (function () {
       }
       Mascotas.tick(dt, ctxJardin);
     }
+    // NPCs del casino: estados, paseos y frases de ambiente
+    if (window.Npcs && sala && esCasino(sala)) {
+      var bloqC = rejillaBloqueo();
+      Npcs.tickCasino(dt, {
+        libre: function (x, y) { return dentro(x, y) && !bloqC[y][x]; },
+        sentableEn: function (x, y) {
+          var fS = furniEn(x, y);
+          if (!fS) return null;
+          var dS = Furnis.get(fS.id);
+          return dS.sentable ? (dS.alturaAsiento || 0.5) : null;
+        }
+      });
+    }
     if (!camino.length) {
       if (avatar.pose === "andando") { avatar.pose = "parado"; avatar.fase = 0; }
       // habilidad desbloqueable: bailar quieto sobre la pista
@@ -317,9 +332,16 @@ var Sala = (function () {
 
   // ---------------- validación de colocación ----------------
 
+  // Exclusividad de zona: los furnis del casino solo se colocan
+  // en el casino y los normales no pueden entrar en él.
+  function zonaValida(def) {
+    return (def.zona === "casino") === esCasino(sala);
+  }
+
   function validar(id, x, y, rot, uidIgnorar) {
     var def = Furnis.get(id);
     if (!def) return false;
+    if (!zonaValida(def)) return false;
     var p = Furnis.pie(id, rot || 0);
     if (x < 0 || y < 0 || x + p[0] > sala.ancho || y + p[1] > sala.fondo) return false;
 
@@ -348,6 +370,8 @@ var Sala = (function () {
 
   function validarPared(id, pared, slot, uidIgnorar) {
     if (esJardin(sala)) return false; // los setos no sujetan cuadros
+    var defP = Furnis.get(id);
+    if (!defP || !zonaValida(defP)) return false;
     var len = (pared === "x") ? sala.ancho : sala.fondo;
     if (slot < 0 || slot >= len) return false;
     var f = furniPared(pared, slot);
@@ -387,6 +411,14 @@ var Sala = (function () {
           cbs.alMascota(habs[0], puntoDe(f));
           return;
         }
+      }
+      // juegos del casino: acercarse y abrir su juego
+      var defJ = Furnis.get(f.id);
+      if (defJ.juegoCasino && esCasino(sala)) {
+        acercarseA(tx, ty, function () {
+          if (cbs.alCasino) cbs.alCasino(defJ.juegoCasino, f);
+        });
+        return;
       }
       // el ordenador de casa: acercarse y abrir los minijuegos
       if (f.fijo && f.id === "escritorio_ordenador") {
@@ -525,6 +557,11 @@ var Sala = (function () {
     var colorP = jardin ? "verde_oscuro" : sala.colorPared;
     Iso.cubo(ctx, -G, -G, 0, G, F + G, altoP, colorP);
     Iso.cubo(ctx, 0, -G, 0, A, G, altoP, colorP);
+    if (esCasino(sala)) {
+      // zócalo dorado sobre la pared oscura
+      Iso.cubo(ctx, -G, -G, 0, G, F + G, 0.14, "amarillo");
+      Iso.cubo(ctx, 0, -G, 0, A, G, 0.14, "amarillo");
+    }
     if (!jardin) {
       sala.furnis.forEach(function (f) {
         if (esPared(f)) Furnis.get(f.id).dibujarPared(ctx, f.pared, f.slot);
@@ -550,6 +587,16 @@ var Sala = (function () {
             }
           } else {
             Iso.plano(ctx, bx, by, 0, 1, 1, ((bx + by) % 2) ? parB : sala.colorSuelo);
+          }
+        }
+    } else if (esCasino(sala)) {
+      // moqueta verde con borde de madera y trama sutil
+      for (var ky = 0; ky < F; ky++)
+        for (var kx = 0; kx < A; kx++) {
+          var borde = (kx === 0 || ky === 0 || kx === A - 1 || ky === F - 1);
+          Iso.plano(ctx, kx, ky, 0, 1, 1, borde ? "madera_oscura" : "verde_oscuro");
+          if (!borde && (kx + ky) % 2 === 0) {
+            casillaMarcada(kx, ky, "rgba(228, 194, 90, 0.06)", true);
           }
         }
     } else {

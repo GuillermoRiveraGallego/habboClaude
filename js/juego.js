@@ -68,6 +68,30 @@ var Juego = (function () {
             { uid: 15, id: "foco_disco", x: 0, y: 2, rot: 0 },
             { uid: 16, id: "foco_disco", x: 9, y: 5, rot: 2 }
           ]
+        },
+        {
+          nombre: "El Casino", ancho: 12, fondo: 10, tipo: "casino",
+          colorSuelo: "verde_oscuro", colorPared: "madera_oscura",
+          desbloqueada: false, precio: 3000,
+          furnis: [
+            { uid: 20, id: "cartel_casino", pared: "x", slot: 5 },
+            { uid: 21, id: "cartel_casino", pared: "y", slot: 3 },
+            { uid: 22, id: "tragaperras", x: 9, y: 0, rot: 1 },
+            { uid: 23, id: "tragaperras", x: 10, y: 0, rot: 1 },
+            { uid: 24, id: "mesa_blackjack", x: 2, y: 2, rot: 1 },
+            { uid: 25, id: "ruleta_casino", x: 7, y: 2, rot: 0 },
+            { uid: 26, id: "mesa_dados", x: 4, y: 5, rot: 0 },
+            { uid: 27, id: "mesa_poker", x: 8, y: 6, rot: 0 },
+            { uid: 28, id: "barra_casino", x: 1, y: 8, rot: 3 },
+            { uid: 29, id: "taburete_casino", x: 1, y: 7, rot: 1 },
+            { uid: 30, id: "taburete_casino", x: 2, y: 7, rot: 1 },
+            { uid: 31, id: "sofa_cuero", x: 11, y: 4, rot: 2 },
+            { uid: 32, id: "alfombra_casino_roja", x: 5, y: 3, rot: 0 },
+            { uid: 33, id: "lampara_casino", x: 0, y: 0, rot: 0 },
+            { uid: 34, id: "lampara_casino", x: 11, y: 9, rot: 0 },
+            { uid: 35, id: "planta_casino", x: 0, y: 9, rot: 0 },
+            { uid: 36, id: "planta_casino", x: 11, y: 0, rot: 0 }
+          ]
         }
       ],
       mascotas: [],
@@ -75,6 +99,7 @@ var Juego = (function () {
       recompensas: { fuente: false, gnomo: false, bola_disco: false, bailar: false },
       tareas: { fecha: "", progreso: {}, reclamadas: {}, juegosHoy: [], npcsHoy: [] },
       minijuegos: {},
+      casino: { jugadas: 0, apostado: 0, ganado: 0 },
       ambiente: "auto",
       avatar: {
         peinado: "clasico",
@@ -98,7 +123,7 @@ var Juego = (function () {
     Object.keys(base).forEach(function (k) {
       if (datos[k] === undefined) datos[k] = base[k];
     });
-    ["comida", "recompensas", "avatar", "tareas"].forEach(function (k) {
+    ["comida", "recompensas", "avatar", "tareas", "casino"].forEach(function (k) {
       Object.keys(base[k]).forEach(function (k2) {
         if (datos[k][k2] === undefined) datos[k][k2] = base[k][k2];
       });
@@ -112,9 +137,17 @@ var Juego = (function () {
     if (!datos.salas.some(function (s) { return s.tipo === "jardin"; })) {
       datos.salas.push(base.salas[3]);
     }
-    // la sala de baile debe existir
+    // la sala de baile debe existir (antes del casino, para que
+    // los índices de sala de los NPC fijos no se muevan)
     if (!datos.salas.some(function (s) { return s.tipo === "baile"; })) {
-      datos.salas.push(base.salas[4]);
+      var iCasino = -1;
+      datos.salas.forEach(function (s, i) { if (s.tipo === "casino") iCasino = i; });
+      if (iCasino === -1) datos.salas.push(base.salas[4]);
+      else datos.salas.splice(iCasino, 0, base.salas[4]);
+    }
+    // el casino debe existir
+    if (!datos.salas.some(function (s) { return s.tipo === "casino"; })) {
+      datos.salas.push(base.salas[5]);
     }
     // la sala actual debe ser válida y estar desbloqueada
     if (!datos.salas[datos.salaActual] || !datos.salas[datos.salaActual].desbloqueada) {
@@ -297,6 +330,36 @@ var Juego = (function () {
     return premio;
   }
 
+  // ---------------- casino ----------------
+
+  function datosCasino() {
+    if (!estado.casino) estado.casino = nuevaPartida().casino;
+    return estado.casino;
+  }
+
+  // La apuesta se cobra por adelantado; false si no hay créditos
+  function apostarCasino(n) {
+    n = Math.floor(n);
+    if (!(n > 0) || estado.creditos < n) return false;
+    estado.creditos -= n;
+    var d = datosCasino();
+    d.jugadas++;
+    d.apostado += n;
+    cambio();
+    return true;
+  }
+
+  // Abona el premio TOTAL de la jugada (0 si se pierde) y
+  // dispara cambio() → autoguardado tras cada partida
+  function premioCasino(n) {
+    n = Math.floor(n);
+    if (n > 0) {
+      datosCasino().ganado += n;
+      estado.creditos += n;
+    }
+    cambio();
+  }
+
   // ---------------- tareas diarias ----------------
 
   function tareas() {
@@ -335,6 +398,9 @@ var Juego = (function () {
     datosMinijuego: datosMinijuego,
     empezarMinijuego: empezarMinijuego,
     terminarMinijuego: terminarMinijuego,
+    datosCasino: datosCasino,
+    apostarCasino: apostarCasino,
+    premioCasino: premioCasino,
     tareas: tareas,
     ponAlCambiar: function (fn) { oyentes.push(fn); },
     estado: function () { return estado; }
