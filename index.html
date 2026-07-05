@@ -724,7 +724,7 @@
       Juego.estado().casino.jugadas === 0);
     paso11("los muebles del casino están en el catálogo",
       !!Furnis.get("mesa_blackjack") && !!Furnis.get("ruleta_casino") &&
-      !!Furnis.get("tragaperras") && !!Furnis.get("mesa_dados") && !!Furnis.get("mesa_poker"));
+      !!Furnis.get("tragaperras") && !!Furnis.get("mesa_dados") && !!Furnis.get("mesa_trile"));
     paso11("son de zona casino",
       Furnis.get("ruleta_casino").zona === "casino" && Furnis.get("sofa_cuero").zona === "casino");
 
@@ -737,8 +737,8 @@
     paso11("se puede entrar", Juego.cambiarSala(5));
     Sala.cargar(Juego.salaActual());
     var idsCasino = Juego.salaActual().furnis.map(function (f) { return f.id; });
-    paso11("viene amueblado (blackjack, ruleta, tragaperras, dados, póker, barra)",
-      ["mesa_blackjack", "ruleta_casino", "tragaperras", "mesa_dados", "mesa_poker", "barra_casino"]
+    paso11("viene amueblado (blackjack, ruleta, tragaperras, dados, trile, barra)",
+      ["mesa_blackjack", "ruleta_casino", "tragaperras", "mesa_dados", "mesa_trile", "barra_casino"]
         .every(function (id) { return idsCasino.indexOf(id) !== -1; }));
     paso11("mueble normal en el casino = no", !Sala.validar("mesa_madera", 5, 6, 0));
     paso11("mueble del casino sí se coloca", Sala.validar("sofa_cuero", 5, 6, 0));
@@ -782,6 +782,44 @@
       Casino.valorMano([{ v: 11 }, { v: 10 }, { v: 5 }]) === 16);
     paso11("blackjack: la baraja tiene 52 cartas", Casino.crearBaraja().length === 52);
 
+    // sigue la bolita (trile)
+    paso11("trile: los cambios llevan la bola a posFinal", (function () {
+      for (var i = 0; i < 60; i++) {
+        var t = Casino.generarTrile(i % 3, 4 + (i % 10));
+        var pos = i % 3;
+        t.cambios.forEach(function (c) {
+          if (pos === c[0]) pos = c[1];
+          else if (pos === c[1]) pos = c[0];
+        });
+        if (pos !== t.posFinal) return false;
+      }
+      return true;
+    })());
+    paso11("trile: cada cambio mueve dos vasos distintos y válidos", (function () {
+      var t = Casino.generarTrile(0, 200);
+      return t.cambios.every(function (c) {
+        return c[0] !== c[1] && c[0] >= 0 && c[0] <= 2 && c[1] >= 0 && c[1] <= 2;
+      });
+    })());
+    paso11("trile: tres velocidades con premio creciente",
+      Casino.TRILE_NIVELES.tranquilo.mult === 1.5 &&
+      Casino.TRILE_NIVELES.normal.mult === 2 &&
+      Casino.TRILE_NIVELES.vertiginoso.mult === 3 &&
+      Casino.TRILE_NIVELES.tranquilo.cambios < Casino.TRILE_NIVELES.vertiginoso.cambios);
+    // migración: la mesa de póker retirada se convierte en mesa del trile
+    var copiaT = JSON.parse(JSON.stringify(Juego.estado()));
+    copiaT.salas[5].furnis.forEach(function (f) {
+      if (f.id === "mesa_trile") f.id = "mesa_poker";
+    });
+    copiaT.inventario.push({ uid: 950, id: "mesa_poker" });
+    Juego.iniciar(copiaT);
+    paso11("migración: las mesas de póker antiguas pasan a ser del trile",
+      Juego.salas()[5].furnis.some(function (f) { return f.id === "mesa_trile"; }) &&
+      !Juego.salas()[5].furnis.some(function (f) { return f.id === "mesa_poker"; }) &&
+      Juego.inventario()[Juego.inventario().length - 1].id === "mesa_trile");
+    Juego.deInventario(950);
+    Sala.cargar(Juego.salaActual());
+
     // economía: cobro por adelantado, premio y estadísticas
     var c1C = Juego.creditos();
     paso11("la apuesta se cobra por adelantado",
@@ -802,13 +840,18 @@
     Npcs.tickCasino(3, ctxNpc);
     Npcs.tickCasino(3, ctxNpc);
     paso11("la clienta del bar se sienta", Npcs.estadoCasino("casimira") === "sentado");
-    paso11("el crupier no pasea",
-      ["jugando", "esperando"].indexOf(Npcs.estadoCasino("dolores")) !== -1);
+    paso11("la crupier no pasea",
+      ["jugando", "esperando"].indexOf(Npcs.estadoCasino("lucia")) !== -1);
     Npcs.tickCasino(10, ctxNpc);
     paso11("los NPC sueltan frases de ambiente", typeof Npcs.fraseCasino("rufino") === "string");
-    var doloresC = Npcs.porId("dolores");
+    var luciaC = Npcs.porId("lucia");
     paso11("los NPC del casino conversan",
-      doloresC.genericas.indexOf(Npcs.responder(doloresC, "xyzzy")) !== -1);
+      luciaC.genericas.indexOf(Npcs.responder(luciaC, "xyzzy")) !== -1);
+    paso11("Lucía la crupier mide el doble", luciaC.alto === 2);
+    paso11("trile: niveles endurecidos al doble",
+      Casino.TRILE_NIVELES.tranquilo.cambios === 12 &&
+      Casino.TRILE_NIVELES.normal.cambios === 18 &&
+      Casino.TRILE_NIVELES.vertiginoso.cambios === 26);
     paso11("no se coloca un mueble sobre un NPC", !Sala.validar("sofa_cuero", 6, 6, 0));
 
     cajaTexto(log11.join("\n"));

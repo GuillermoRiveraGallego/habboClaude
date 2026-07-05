@@ -992,10 +992,6 @@ var UI = (function () {
         if (window.Minijuegos) Minijuegos.abrir();
       },
       alCasino: function (juego) {
-        if (juego === "poker") {
-          avisar("🃏 Póker próximamente", "ok");
-          return;
-        }
         if (window.Casino) Casino.abrir(juego);
       }
     });

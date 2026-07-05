@@ -1384,7 +1384,7 @@ var Furnis = (function () {
   // zona: "casino": solo se pueden colocar allí, y los muebles
   // normales no pueden entrar (lo valida Sala.validar). Los que
   // tienen juegoCasino abren su juego al pulsarlos en modo
-  // pasear (mesa de póker: aún solo decorativa).
+  // pasear (la mesa del trile abre "Sigue la bolita").
   // ==========================================================
 
   def({
@@ -1483,24 +1483,23 @@ var Furnis = (function () {
   });
 
   def({
-    id: "mesa_poker",
-    nombre: "Mesa de póker",
+    id: "mesa_trile",
+    nombre: "Mesa del trile",
     categoria: "casino",
     zona: "casino",
-    juegoCasino: "poker",
-    precio: 1000,
-    tam: [2, 2],
+    juegoCasino: "trile",
+    precio: 650,
+    tam: [2, 1],
+    rotaciones: 4,
     altura: 1.0,
     dibujar: function (p) {
-      p.cilindro(1.0, 1.0, 0, 0.3, 0.1, "madera_oscura");          // base
-      p.cilindro(1.0, 1.0, 0.1, 0.16, 0.7, "madera_oscura");       // pie central
-      p.cilindro(1.0, 1.0, 0.8, 0.95, 0.12, "madera_oscura");      // canto
-      p.cilindro(1.0, 1.0, 0.92, 0.82, 0.04, "verde_oscuro");      // tapete
-      p.cubo(0.6, 0.9, 0.96, 0.2, 0.14, 0.02, "blanco");           // cartas
-      p.cubo(1.2, 0.78, 0.96, 0.2, 0.14, 0.02, "blanco");
-      p.cilindro(1.0, 1.35, 0.96, 0.07, 0.08, "rojo");             // fichas
-      p.cilindro(0.75, 1.28, 0.96, 0.07, 0.05, "azul");
-      p.cilindro(1.28, 1.25, 0.96, 0.07, 0.06, "amarillo");
+      patas4(p, 0.15, 0.15, 1.85, 0.85, 0.1, 0.75, "madera_oscura");
+      p.cubo(0.02, 0.02, 0.75, 1.96, 0.96, 0.1, "madera");          // tablero
+      p.cubo(0.1, 0.08, 0.85, 1.8, 0.84, 0.03, "rojo");             // mantel
+      p.cilindro(0.45, 0.5, 0.88, 0.13, 0.22, "blanco");            // los 3 vasos
+      p.cilindro(1.0, 0.45, 0.88, 0.13, 0.22, "blanco");
+      p.cilindro(1.55, 0.5, 0.88, 0.13, 0.22, "blanco");
+      p.cilindro(1.28, 0.75, 0.88, 0.05, 0.08, "amarillo");         // la bolita
     },
   });
 

@@ -13,10 +13,11 @@
 // cambio() → autoguardado tras cada partida).
 //
 // La lógica de cada juego vive en funciones puras (resolver*,
-// valorMano) con azar real de Math.random() — sin amañar: se
-// puede perder muchas veces seguidas. El póker es solo un
-// mueble decorativo por ahora ("Póker próximamente", lo avisa
-// la UI sin abrir este modal).
+// valorMano, generarTrile) con azar real de Math.random() —
+// sin amañar: se puede perder muchas veces seguidas. El trile
+// ("Sigue la bolita") es el único con componente de habilidad:
+// los intercambios se deciden al azar pero la mezcla se ve de
+// verdad en pantalla, así que si no la pierdes de vista, ganas.
 // ============================================================
 var Casino = (function () {
 
@@ -28,7 +29,8 @@ var Casino = (function () {
     dados: { icono: "🎲", nombre: "Mesa de dados", inicia: juegoDados },
     ruleta: { icono: "🛞", nombre: "Ruleta europea", inicia: juegoRuleta },
     tragaperras: { icono: "🎰", nombre: "Tragaperras", inicia: juegoTragaperras },
-    blackjack: { icono: "🃏", nombre: "Blackjack", inicia: juegoBlackjack }
+    blackjack: { icono: "🃏", nombre: "Blackjack", inicia: juegoBlackjack },
+    trile: { icono: "🥤", nombre: "Sigue la bolita", inicia: juegoTrile }
   };
 
   function rand(n) { return Math.floor(Math.random() * n); }
@@ -101,6 +103,29 @@ var Casino = (function () {
       cartas[j] = t;
     }
     return cartas;
+  }
+
+  // --- trile ("Sigue la bolita"): 3 vasos, la bola bajo uno,
+  // se mezclan a la vista y hay que señalar dónde quedó. Tres
+  // velocidades: más rápida, más paga. generarTrile decide los
+  // intercambios al azar y sigue la bola (puro, testeable).
+  var TRILE_NIVELES = {
+    tranquilo: { id: "tranquilo", nombre: "Tranquilo", cambios: 12, ms: 520, mult: 1.5 },
+    normal: { id: "normal", nombre: "Normal", cambios: 18, ms: 350, mult: 2 },
+    vertiginoso: { id: "vertiginoso", nombre: "Vertiginoso", cambios: 26, ms: 215, mult: 3 }
+  };
+
+  function generarTrile(posInicial, numCambios) {
+    var pos = posInicial;
+    var cambios = [];
+    for (var i = 0; i < numCambios; i++) {
+      var a = rand(3);
+      var b = (a + 1 + rand(2)) % 3; // siempre dos vasos distintos
+      cambios.push([a, b]);
+      if (pos === a) pos = b;
+      else if (pos === b) pos = a;
+    }
+    return { cambios: cambios, posFinal: pos };
   }
 
   // ----------------------------------------------------------
@@ -351,6 +376,8 @@ var Casino = (function () {
 
   // ==========================================================
   // 3) TRAGAPERRAS — 3 rodillos · triples x3–x20 · pareja x1.5
+  // Modo máquina: el resultado sale bajo los rodillos y el
+  // botón Tirar se rearma solo, para encadenar tiradas.
   // ==========================================================
 
   function juegoTragaperras() {
@@ -362,23 +389,30 @@ var Casino = (function () {
       '<div class="ca-rodillos">' +
         '<span id="ca-rodillo0">❔</span><span id="ca-rodillo1">❔</span><span id="ca-rodillo2">❔</span>' +
       '</div>' +
+      '<div class="ca-resultado-inline" id="ca-premio-traga">Cada tirada cuesta tu apuesta</div>' +
       '<div class="mo-centrado"><button class="ca-opcion" id="ca-tirar">🎰 Tirar</button></div>' +
       '<div class="ca-tabla-pagos">' + tabla + '</div>' +
-      '<div class="mo-estado" id="ca-estado">Cada tirada cuesta tu apuesta</div>';
+      '<div class="mo-estado" id="ca-estado"></div>';
     engancharFichas();
 
-    document.getElementById("ca-tirar").addEventListener("click", function () {
+    var btnTirar = document.getElementById("ca-tirar");
+    var elPremio = document.getElementById("ca-premio-traga");
+    var rodillos = [
+      document.getElementById("ca-rodillo0"),
+      document.getElementById("ca-rodillo1"),
+      document.getElementById("ca-rodillo2")
+    ];
+
+    btnTirar.addEventListener("click", function () {
       var a = cobrarApuesta();
       if (!a) return;
-      this.disabled = true;
-      var rodillos = [
-        document.getElementById("ca-rodillo0"),
-        document.getElementById("ca-rodillo1"),
-        document.getElementById("ca-rodillo2")
-      ];
+      btnTirar.disabled = true;
+      ponEstado("");
+      elPremio.className = "ca-resultado-inline";
+      elPremio.textContent = "Girando…";
       var final = [SIMBOLOS[rand(5)], SIMBOLOS[rand(5)], SIMBOLOS[rand(5)]];
       var parados = [false, false, false];
-      ponEstado("Girando…");
+      rodillos.forEach(function (r) { r.classList.remove("parado"); });
       cadaTanto(function () {
         for (var i = 0; i < 3; i++) {
           if (!parados[i]) rodillos[i].textContent = SIMBOLOS[rand(5)];
@@ -393,10 +427,17 @@ var Casino = (function () {
           if (i === 2) {
             limpiar();
             var mult = resolverTragaperras(final);
-            var detalle = final.join(" ") + (mult === 0 ? " — sin premio esta vez." :
-              mult === 1.5 ? " — ¡dos iguales!" : " — ¡TRIPLE!");
-            ponEstado("");
-            resultado(a, mult, detalle, juegoTragaperras);
+            var premio = Math.floor(a * mult);
+            Juego.premioCasino(premio); // cambio() → autoguardado
+            if (mult === 0) {
+              elPremio.className = "ca-resultado-inline pierde";
+              elPremio.textContent = "💸 Sin premio: pierdes " + a + " créditos";
+            } else {
+              elPremio.className = "ca-resultado-inline gana";
+              elPremio.textContent = "🎉 " + (mult === 1.5 ? "¡Dos iguales!" : "¡TRIPLE!") +
+                " Ganas " + premio + " créditos";
+            }
+            btnTirar.disabled = false;
           }
         }, ms);
       });
@@ -488,6 +529,110 @@ var Casino = (function () {
     });
   }
 
+  // ==========================================================
+  // 5) SIGUE LA BOLITA (trile) — la bola se esconde bajo un
+  //    vaso, los vasos se mezclan a la vista y señalas dónde
+  //    quedó. Habilidad pura: síguela y ganas.
+  // ==========================================================
+
+  var TRILE_X = [12, 112, 212]; // px del vaso de cada hueco
+
+  function juegoTrile() {
+    var niveles = ["tranquilo", "normal", "vertiginoso"];
+    elContenido.innerHTML =
+      filaApuesta() +
+      '<div class="ca-trile" id="ca-trile">' +
+        '<div class="ca-bola" id="ca-bola"></div>' +
+        '<div class="ca-vaso"></div><div class="ca-vaso"></div><div class="ca-vaso"></div>' +
+      '</div>' +
+      '<div class="ca-opciones">' + niveles.map(function (id) {
+        var n = TRILE_NIVELES[id];
+        return '<button class="ca-opcion" data-nivel="' + id + '">' + n.nombre +
+          '<br><b>x' + n.mult + '</b></button>';
+      }).join("") + '</div>' +
+      '<div class="mo-estado" id="ca-estado">Elige velocidad: te enseño la bolita, mezclo los vasos y me dices dónde quedó</div>';
+    engancharFichas();
+
+    var vasos = Array.prototype.slice.call(elContenido.querySelectorAll(".ca-vaso"));
+    var bola = document.getElementById("ca-bola");
+    var vasoEn = [vasos[0], vasos[1], vasos[2]]; // qué vaso hay en cada hueco
+    vasos.forEach(function (v, i) { v.style.left = TRILE_X[i] + "px"; });
+
+    function ponBola(hueco) {
+      bola.style.left = (TRILE_X[hueco] + 23) + "px";
+    }
+
+    elContenido.querySelectorAll("[data-nivel]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var nivel = TRILE_NIVELES[b.getAttribute("data-nivel")];
+        var a = cobrarApuesta();
+        if (!a) return;
+        elContenido.querySelectorAll("[data-nivel]").forEach(function (o) { o.disabled = true; });
+
+        var inicio = rand(3);
+        var jugada = generarTrile(inicio, nivel.cambios);
+        vasos.forEach(function (v) {
+          v.style.transitionDuration = Math.round(nivel.ms * 0.85) + "ms, 250ms";
+        });
+
+        // 1) enseñar la bola bajo su vaso
+        ponBola(inicio);
+        bola.classList.add("visible");
+        vasoEn[inicio].classList.add("arriba");
+        ponEstado("Mira bien dónde está…");
+
+        tempo(function () {
+          // 2) tapar y mezclar
+          vasoEn[inicio].classList.remove("arriba");
+          bola.classList.remove("visible");
+          ponEstado("¡Sigue la bolita!");
+          var paso = 0;
+          tempo(function mezcla() {
+            if (paso >= jugada.cambios.length) { elegir(); return; }
+            var c = jugada.cambios[paso++];
+            var va = vasoEn[c[0]], vb = vasoEn[c[1]];
+            va.style.left = TRILE_X[c[1]] + "px";
+            vb.style.left = TRILE_X[c[0]] + "px";
+            vasoEn[c[0]] = vb;
+            vasoEn[c[1]] = va;
+            tempo(mezcla, nivel.ms);
+          }, 350);
+        }, 1100);
+
+        // 3) el jugador señala un vaso
+        function elegir() {
+          ponEstado("¿Dónde está la bolita? Toca un vaso");
+          document.getElementById("ca-trile").classList.add("elegible");
+          var elegido = false;
+          vasos.forEach(function (v) {
+            v.addEventListener("click", function () {
+              if (elegido) return;
+              elegido = true;
+              document.getElementById("ca-trile").classList.remove("elegible");
+              var hueco = vasoEn.indexOf(v);
+              var acierta = (hueco === jugada.posFinal);
+              // 4) revelar: primero el elegido y, si falla, el bueno
+              ponBola(jugada.posFinal);
+              if (acierta) bola.classList.add("visible");
+              v.classList.add("arriba");
+              tempo(function () {
+                if (!acierta) {
+                  bola.classList.add("visible");
+                  vasoEn[jugada.posFinal].classList.add("arriba");
+                }
+                ponEstado("");
+                resultado(a, acierta ? nivel.mult : 0,
+                  acierta ? "¡Ojo de lince! No la perdiste de vista (nivel " + nivel.nombre.toLowerCase() + ")."
+                          : "La bolita estaba en el otro vaso. ¡Casi!",
+                  juegoTrile);
+              }, acierta ? 500 : 700);
+            });
+          });
+        }
+      });
+    });
+  }
+
   return {
     iniciar: iniciar,
     abrir: abrir,
@@ -498,6 +643,8 @@ var Casino = (function () {
     resolverTragaperras: resolverTragaperras,
     colorRuleta: colorRuleta,
     valorMano: valorMano,
+    generarTrile: generarTrile,
+    TRILE_NIVELES: TRILE_NIVELES,
     crearBaraja: crearBaraja
   };
 })();

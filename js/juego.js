@@ -81,7 +81,7 @@ var Juego = (function () {
             { uid: 24, id: "mesa_blackjack", x: 2, y: 2, rot: 1 },
             { uid: 25, id: "ruleta_casino", x: 7, y: 2, rot: 0 },
             { uid: 26, id: "mesa_dados", x: 4, y: 5, rot: 0 },
-            { uid: 27, id: "mesa_poker", x: 8, y: 6, rot: 0 },
+            { uid: 27, id: "mesa_trile", x: 8, y: 6, rot: 0 },
             { uid: 28, id: "barra_casino", x: 1, y: 8, rot: 3 },
             { uid: 29, id: "taburete_casino", x: 1, y: 7, rot: 1 },
             { uid: 30, id: "taburete_casino", x: 2, y: 7, rot: 1 },
@@ -149,6 +149,10 @@ var Juego = (function () {
     if (!datos.salas.some(function (s) { return s.tipo === "casino"; })) {
       datos.salas.push(base.salas[5]);
     }
+    // la mesa de póker (retirada) ahora es la mesa del trile
+    function aTrile(f) { if (f.id === "mesa_poker") f.id = "mesa_trile"; }
+    datos.salas.forEach(function (s) { s.furnis.forEach(aTrile); });
+    datos.inventario.forEach(aTrile);
     // la sala actual debe ser válida y estar desbloqueada
     if (!datos.salas[datos.salaActual] || !datos.salas[datos.salaActual].desbloqueada) {
       datos.salaActual = 0;

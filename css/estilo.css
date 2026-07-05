@@ -912,6 +912,18 @@ button.mini.activo {
 
 .ca-rodillos span.parado { border-color: #e4c25a; }
 
+.ca-resultado-inline {
+  text-align: center;
+  font-size: 14px;
+  color: #a3a8af;
+  min-height: 22px;
+  margin: 2px 0 8px;
+  font-weight: bold;
+}
+
+.ca-resultado-inline.gana { color: #e4c25a; }
+.ca-resultado-inline.pierde { color: #c95349; }
+
 .ca-tabla-pagos {
   text-align: center;
   font-size: 12px;
@@ -953,6 +965,45 @@ button.mini.activo {
 }
 
 .ca-carta.roja { color: #c95349; }
+
+/* --- sigue la bolita (trile) --- */
+
+.ca-trile {
+  position: relative;
+  width: 288px;
+  height: 140px;
+  margin: 8px auto 0;
+}
+
+.ca-vaso {
+  position: absolute;
+  bottom: 12px;
+  width: 64px;
+  height: 76px;
+  background: #c95349;
+  border-bottom: 5px solid #8e3a33;
+  clip-path: polygon(16% 0, 84% 0, 100% 100%, 0% 100%);
+  transition: left 0.4s ease-in-out, transform 0.25s;
+}
+
+.ca-trile.elegible .ca-vaso { cursor: pointer; }
+.ca-trile.elegible .ca-vaso:hover { filter: brightness(1.15); }
+
+.ca-vaso.arriba { transform: translateY(-52px); }
+
+.ca-bola {
+  position: absolute;
+  bottom: 12px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f2efe6;
+  box-shadow: 0 0 8px rgba(228, 194, 90, 0.8);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ca-bola.visible { opacity: 1; }
 
 .ca-carta.dorso {
   background: #4a5a8a;

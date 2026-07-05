@@ -293,8 +293,9 @@ var Npcs = (function () {
   // runtime es efímero: nunca se guarda.
   var CASINO = [
     {
-      id: "dolores", nombre: "Dolores", emoji: "🃏", casino: true,
+      id: "lucia", nombre: "Lucía", emoji: "🃏", casino: true,
       conducta: "crupier", x: 2, y: 1, dir: 1,
+      alto: 2, // la crupier gigante: el doble de alta que el resto
       aspecto: { peinado: "coleta", pelo: "negro", piel: "piel",
                  camiseta: "negro", pantalon: "negro", zapatos: "negro" },
       frases: [
@@ -302,11 +303,11 @@ var Npcs = (function () {
         "No más apuestas.",
         "Buena mano.",
         "La banca gana... casi siempre.",
-        "Cartas sobre la mesa."
+        "Desde aquí arriba lo veo todo."
       ],
       saludos: [
-        "Bienvenido a la mesa. Soy Dolores, la crupier. ¿Se atreve con un blackjack?",
-        "Buenas noches... aquí siempre es de noche. ¿Una partidita?"
+        "Bienvenido a la mesa. Soy Lucía, la crupier. Sí, soy alta: lo veo TODO, así que ni se le ocurra hacer trampas.",
+        "Buenas noches... aquí siempre es de noche. ¿Una partidita? Yo reparto, que llego mejor a la mesa."
       ],
       temas: [
         { claves: ["hola", "buenas", "que tal", "hey"],
@@ -317,6 +318,9 @@ var Npcs = (function () {
         { claves: ["truco", "ganar", "suerte", "trampa"],
           respuestas: ["¿Trucos? La única jugada segura es saber cuándo retirarse.",
                        "La suerte no existe, existe la banca. Pero no se lo diga a Rufino."] },
+        { claves: ["alta", "altura", "gigante", "enorme", "mides", "grande"],
+          respuestas: ["Dos metros y pico... el pico es secreto profesional. Desde aquí veo hasta las cartas de Rufino.",
+                       "¿Alta yo? Será que el casino es bajito. Lo importante es que ninguna carta se me escapa."] },
         { claves: ["adios", "chao", "hasta luego", "me voy"],
           respuestas: ["Que la suerte le acompañe. La necesitará."] }
       ],
@@ -605,8 +609,10 @@ var Npcs = (function () {
 
   // caja envolvente para el orden de pintado de la sala
   function caja(npc) {
-    var m = 0.34, pos = posDe(npc);
-    return { x0: pos.x - m, y0: pos.y - m, z0: 0, x1: pos.x + m, y1: pos.y + m, z1: 1.7 };
+    var alto = npc.alto || 1;
+    var m = 0.34 * (1 + (alto - 1) * 0.2);
+    var pos = posDe(npc);
+    return { x0: pos.x - m, y0: pos.y - m, z0: 0, x1: pos.x + m, y1: pos.y + m, z1: 1.7 * alto };
   }
 
   // ---------------- dibujo ----------------
@@ -625,16 +631,28 @@ var Npcs = (function () {
       if (rt.estado === "caminando") { pose = "andando"; fase = rt.fase; }
       else if (rt.estado === "sentado") { pose = "sentado"; gz = rt.gz; }
     }
+    // NPCs con "alto" distinto de 1 (la crupier gigante): el
+    // cuerpo se estira desde los pies con una transformación
+    // del canvas, algo más ancho para que no quede espagueti
+    var alto = npc.alto || 1;
     Avatar.ponAspecto(npc.aspecto);
+    if (alto !== 1) {
+      var pies = Iso.proyectar(pos.x, pos.y, gz);
+      ctx.save();
+      ctx.translate(pies.x, pies.y);
+      ctx.scale(1 + (alto - 1) * 0.25, alto);
+      ctx.translate(-pies.x, -pies.y);
+    }
     Avatar.dibujar(ctx, {
       x: pos.x, y: pos.y, dir: dir,
       pose: pose, fase: fase, gz: gz
     });
+    if (alto !== 1) ctx.restore();
     Avatar.ponAspecto(previo);
 
     // frase de ambiente en burbuja (NPCs del casino)
     if (rt && rt.tVisible > 0 && rt.frase) {
-      var pb = Iso.proyectar(pos.x, pos.y, 2.15);
+      var pb = Iso.proyectar(pos.x, pos.y, 1.75 * alto + 0.4);
       ctx.font = "11px 'Trebuchet MS', 'Segoe UI', sans-serif";
       var wb = ctx.measureText(rt.frase).width + 14;
       var alfaB = Math.min(1, rt.tVisible / 0.4);
@@ -650,7 +668,7 @@ var Npcs = (function () {
 
     // nombre flotante sobre la cabeza
     var etiqueta = npc.nombre + (npc.visita ? " · de visita" : "");
-    var p = Iso.proyectar(pos.x, pos.y, 1.75);
+    var p = Iso.proyectar(pos.x, pos.y, 1.75 * alto);
     ctx.font = "bold 10px 'Trebuchet MS', 'Segoe UI', sans-serif";
     var w = ctx.measureText(etiqueta).width + 12;
     ctx.fillStyle = npc.visita ? "rgba(88, 60, 32, 0.78)" : "rgba(35, 37, 44, 0.72)";
