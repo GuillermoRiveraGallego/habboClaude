@@ -83,10 +83,67 @@ var Nube = (function () {
     return { estado: estado, motivo: motivo };
   }
 
+  // ---------------- autenticación (T4) ----------------
+  // Envoltura defensiva de supabase.auth. NO toca la base de
+  // datos ni guarda/carga partidas: solo gestiona la sesión.
+  // Todas las funciones son asíncronas y devuelven el formato
+  // de Supabase { data, error }; si Supabase no está disponible,
+  // devuelven un error controlado en vez de romper.
+
+  function errorSinNube() {
+    return { data: null, error: { message: "Supabase no está disponible; se juega en local." } };
+  }
+
+  // Registro con email + contraseña (confirmación de email
+  // desactivada en desarrollo → deja sesión iniciada).
+  function registrar(email, contrasena) {
+    if (!disponible()) return Promise.resolve(errorSinNube());
+    return cliente.auth.signUp({ email: email, password: contrasena });
+  }
+
+  // Inicio de sesión con email + contraseña.
+  function entrar(email, contrasena) {
+    if (!disponible()) return Promise.resolve(errorSinNube());
+    return cliente.auth.signInWithPassword({ email: email, password: contrasena });
+  }
+
+  // Cierre de sesión.
+  function salir() {
+    if (!disponible()) return Promise.resolve({ error: null });
+    return cliente.auth.signOut();
+  }
+
+  // Usuario actual (o null). Lee la sesión persistida localmente
+  // por supabase-js; es asíncrono.
+  function usuario() {
+    if (!disponible()) return Promise.resolve(null);
+    return cliente.auth.getSession().then(function (r) {
+      return (r && r.data && r.data.session) ? r.data.session.user : null;
+    });
+  }
+
+  // Suscribe un callback a los cambios de sesión (login/logout y
+  // la sesión inicial al cargar). cb recibe (sesion|null, evento).
+  // Devuelve una función para desuscribirse (no-op si no hay nube).
+  function alCambiarSesion(cb) {
+    if (!disponible()) return function () {};
+    var r = cliente.auth.onAuthStateChange(function (evento, sesion) {
+      cb(sesion || null, evento);
+    });
+    return function () {
+      try { r.data.subscription.unsubscribe(); } catch (e) {}
+    };
+  }
+
   return {
     inicializar: inicializar,
     disponible: disponible,
     cliente: obtenerCliente,
-    estado: estadoActual
+    estado: estadoActual,
+    registrar: registrar,
+    entrar: entrar,
+    salir: salir,
+    usuario: usuario,
+    alCambiarSesion: alCambiarSesion
   };
 })();
