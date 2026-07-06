@@ -1,8 +1,5 @@
-# Configuración local con las claves de Supabase.
-# Se ignora por defecto (usa config.example.js como plantilla).
-#
-# NOTA: la Publishable Key es pública (la protege RLS), así que
-# si quieres que Supabase funcione en GitHub Pages puedes quitar
-# esta línea y versionar config.js sin riesgo. Lo que NUNCA debe
-# subirse es la service_role key (que este proyecto no usa).
-config.js
+# config.js contiene la Publishable Key de Supabase, que es PÚBLICA
+# por diseño (la protege RLS) y no es un secreto. Por eso SÍ se
+# versiona: así Supabase funciona también en el despliegue (GitHub
+# Pages, etc.). Lo que NUNCA debe subirse es la service_role key
+# (que este proyecto no usa).
