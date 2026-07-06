@@ -65,7 +65,7 @@
       <button data-panel="tareas">📋 <span class="etiqueta">Tareas</span></button>
       <button data-panel="mascotas">🐾 <span class="etiqueta">Mascotas</span></button>
       <button data-panel="avatar">👤 <span class="etiqueta">Avatar</span></button>
-      <button id="btn-cuenta" title="Cuenta (jugando en local)">☁️ <span class="etiqueta" id="hud-cuenta-estado">Local</span></button>
+      <button id="btn-cuenta" title="Cuenta (jugando como invitado)">☁️ <span class="etiqueta" id="hud-cuenta-estado">Invitado</span></button>
     </div>
   </div>
 
@@ -99,45 +99,26 @@
 <script src="config.js"></script>
 <script src="js/vendor/supabase.js"></script>
 <script src="js/services/supabase.js"></script>
-<!-- UI de cuenta (T4.2): autónoma, se abre con Cuenta.abrir().
-     Aún sin cablear al HUD ni al arranque. -->
+<!-- Backend de nube (T5): traduce el estado del juego a las tablas
+     de Supabase. Se enchufa a Guardado solo si hay sesión. -->
+<script src="js/services/almacen-nube.js"></script>
+<!-- UI de cuenta: modal de login/registro; cableada al HUD en el arranque. -->
 <script src="js/cuenta.js"></script>
 <script>
 (function () {
   var prueba = new URLSearchParams(location.search).get("prueba");
+  var invitado = false;
 
-  // En modo prueba se juega con partida limpia y SIN guardar,
-  // para no tocar la partida real (salvo los modos e2e del
-  // propio guardado).
-  var guardada = (!prueba || prueba === "e2e2") ? Guardado.cargar() : null;
-  Juego.iniciar(guardada);
-  Avatar.ponAspecto(Juego.aspecto()); // el aspecto vive en el estado del juego
-
-  var zona = document.getElementById("zona-canvas");
-  function tamanoLienzo() {
-    return {
-      ancho: Math.max(280, Math.min(zona.clientWidth, 1400)),
-      alto: Math.max(220, Math.min(zona.clientHeight, 900))
-    };
-  }
-  var tam = tamanoLienzo();
-  Sala.iniciar(document.getElementById("lienzo"), { ancho: tam.ancho, alto: tam.alto });
-  Sala.cargar(Juego.salaActual());
-  UI.iniciar();
-  Minijuegos.iniciar();
-  Casino.iniciar();
-  Ambiente.iniciar();
-
-  // Nube (Supabase): solo prepara la infraestructura (T2). No hace
-  // login ni guarda nada todavía; si no hay config, queda deshabilitada.
+  // Paso 2: inicializar Nube (antes de decidir el backend).
   if (window.Nube) {
     Nube.inicializar();
     console.log("Nube:", Nube.estado().estado, "-", Nube.estado().motivo || "disponible");
   }
 
-  // HUD de cuenta (T4.3): el botón abre el modal e indica el estado
-  // (Local / email), refrescándose al iniciar o cerrar sesión. No se
-  // monta en modo prueba (para no ensuciar tests ni capturas).
+  // Paso 3: HUD de cuenta (solo fuera de prueba). El botón abre el
+  // modal e indica el estado (Invitado / email). Tras un login o
+  // logout se RECARGA la página para que el arranque elija el backend
+  // correcto (no se intercambia el backend en caliente).
   (function () {
     var btn = document.getElementById("btn-cuenta");
     if (!btn) return;
@@ -145,48 +126,122 @@
     var etiqueta = document.getElementById("hud-cuenta-estado");
     function refrescar(sesion) {
       var email = sesion && sesion.user && sesion.user.email;
-      etiqueta.textContent = email || "Local";
-      btn.title = email ? ("Cuenta: " + email) : "Cuenta (jugando en local)";
+      etiqueta.textContent = email || "Invitado";
+      btn.title = email ? ("Cuenta: " + email) : "Cuenta (jugando como invitado)";
     }
     btn.addEventListener("click", function () {
       if (window.Cuenta) Cuenta.abrir();
     });
     if (window.Nube && Nube.disponible()) {
-      // onAuthStateChange emite la sesión inicial y cada login/logout
-      Nube.alCambiarSesion(function (sesion) { refrescar(sesion); });
+      var primera = true;
+      Nube.alCambiarSesion(function (sesion, evento) {
+        refrescar(sesion);
+        if (primera) { primera = false; return; }   // ignora la sesión inicial
+        if (evento === "SIGNED_IN" || evento === "SIGNED_OUT") location.reload();
+      });
     } else {
-      // Supabase no configurado: se juega en local. El botón sigue
-      // abriendo el modal, que explica cómo configurarlo.
+      // Supabase no configurado: se juega como invitado.
       refrescar(null);
       btn.classList.add("sin-nube");
-      btn.title = "Supabase no configurado — juegas en local";
+      btn.title = "Supabase no configurado — juegas como invitado";
     }
   })();
 
-  // responsive: el panel lateral se ancla sobre el HUD (var CSS)
-  // y el lienzo se adapta al redimensionar la ventana
-  var hud = document.getElementById("hud");
-  function ajustarAltoHud() {
-    document.documentElement.style.setProperty("--alto-hud", hud.offsetHeight + "px");
-  }
-  ajustarAltoHud();
-  var tempRedim = null;
-  window.addEventListener("resize", function () {
-    clearTimeout(tempRedim);
-    tempRedim = setTimeout(function () {
-      ajustarAltoHud();
-      var t = tamanoLienzo();
-      Sala.redimensionar(t.ancho, t.alto);
-    }, 120);
-  });
+  // Backend nulo: cumple el contrato de Guardado pero NO persiste
+  // nada (modo invitado; ni siquiera en localStorage).
+  var AlmacenNulo = {
+    nombre: "nulo",
+    cargar: function () { return null; },
+    guardar: function () { return true; },
+    reiniciar: function () {}
+  };
 
-  if (!prueba) {
-    Guardado.iniciar({
-      alError: function () { UI.avisar("No se pudo guardar la partida", "error"); }
+  // Pasos 4-5: elegir backend según la sesión y obtener la partida.
+  function obtenerPartida() {
+    if (prueba) {
+      // los modos de prueba juegan en local (como hasta ahora)
+      return Promise.resolve(prueba === "e2e2" ? Guardado.cargar() : null);
+    }
+    if (!window.Nube || !Nube.disponible()) {
+      invitado = true;
+      Guardado.usarBackend(AlmacenNulo);
+      return Promise.resolve(null);
+    }
+    return Nube.usuario().then(function (u) {
+      if (u) {
+        Guardado.usarBackend(AlmacenNube);
+        return AlmacenNube.cargarOSembrar();   // carga o siembra en la nube
+      }
+      invitado = true;
+      Guardado.usarBackend(AlmacenNulo);
+      return null;
+    }).catch(function (e) {
+      // sin offline todavía: si falla la carga, se juega como invitado
+      console.warn("Nube: no se pudo cargar la partida; modo invitado.", e && e.message);
+      invitado = true;
+      Guardado.usarBackend(AlmacenNulo);
+      return null;
     });
-    Guardado.guardar(); // primera foto de la partida
-    if (guardada) UI.avisar("Partida cargada — bienvenido de nuevo", "ok");
   }
+
+  // Aviso discreto y centrado para el modo invitado.
+  function mostrarAvisoInvitado() {
+    var el = document.createElement("div");
+    el.className = "aviso-invitado";
+    el.innerHTML = '<span>Estás jugando como invitado. Pulsa la nube (☁️) para ' +
+      'iniciar sesión y guardar tu progreso.</span>' +
+      '<button class="ai-cerrar" title="Cerrar">✕</button>';
+    document.getElementById("zona-canvas").appendChild(el);
+    function quitar() { if (el.parentNode) el.parentNode.removeChild(el); }
+    el.querySelector(".ai-cerrar").addEventListener("click", quitar);
+    setTimeout(quitar, 9000);
+  }
+
+  // Paso 6: construir el juego con la partida ya resuelta.
+  function arrancarJuego(guardada) {
+    Juego.iniciar(guardada);
+    Avatar.ponAspecto(Juego.aspecto()); // el aspecto vive en el estado del juego
+
+    var zona = document.getElementById("zona-canvas");
+    function tamanoLienzo() {
+      return {
+        ancho: Math.max(280, Math.min(zona.clientWidth, 1400)),
+        alto: Math.max(220, Math.min(zona.clientHeight, 900))
+      };
+    }
+    var tam = tamanoLienzo();
+    Sala.iniciar(document.getElementById("lienzo"), { ancho: tam.ancho, alto: tam.alto });
+    Sala.cargar(Juego.salaActual());
+    UI.iniciar();
+    Minijuegos.iniciar();
+    Casino.iniciar();
+    Ambiente.iniciar();
+
+    // responsive: el panel lateral se ancla sobre el HUD (var CSS)
+    // y el lienzo se adapta al redimensionar la ventana
+    var hud = document.getElementById("hud");
+    function ajustarAltoHud() {
+      document.documentElement.style.setProperty("--alto-hud", hud.offsetHeight + "px");
+    }
+    ajustarAltoHud();
+    var tempRedim = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(tempRedim);
+      tempRedim = setTimeout(function () {
+        ajustarAltoHud();
+        var t = tamanoLienzo();
+        Sala.redimensionar(t.ancho, t.alto);
+      }, 120);
+    });
+
+    if (!prueba) {
+      Guardado.iniciar({
+        alError: function () { UI.avisar("No se pudo guardar la partida", "error"); }
+      });
+      Guardado.guardar(); // primera foto de la partida
+      if (guardada) UI.avisar("Partida cargada — bienvenido de nuevo", "ok");
+      if (invitado) mostrarAvisoInvitado();
+    }
 
   // ---- modos de prueba para capturas: index.html?prueba=... ----
   if (prueba) document.getElementById("panel").style.transition = "none";
@@ -960,6 +1015,12 @@
       cajaTexto(log12.join("\n"));
     });
   }
+  }  // fin de arrancarJuego
+
+  // Pasos 4-6: obtener la partida (según sesión) y arrancar el juego.
+  obtenerPartida().then(arrancarJuego).catch(function (e) {
+    console.error("Arranque: fallo inesperado", e);
+  });
 })();
 </script>
 </body>

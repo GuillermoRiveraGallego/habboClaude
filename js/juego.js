@@ -373,6 +373,7 @@ var Juego = (function () {
 
   return {
     iniciar: iniciar,
+    nuevaPartida: nuevaPartida,   // fábrica del estado inicial (p. ej. seed de nube)
     creditos: creditos,
     inventario: inventario,
     salas: salas,

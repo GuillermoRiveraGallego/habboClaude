@@ -641,6 +641,37 @@ button.mini.activo {
 /* Botón de cuenta cuando Supabase no está configurado */
 #btn-cuenta.sin-nube { opacity: 0.55; }
 
+/* Aviso discreto para el modo invitado (sin sesión) */
+.aviso-invitado {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 92%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(43, 47, 58, 0.95);
+  border: 2px solid #58b2a4;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #f2efe6;
+  z-index: 11;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.aviso-invitado .ai-cerrar {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: #3b4254;
+  border: 2px solid #565f75;
+  border-radius: 6px;
+  color: #f2efe6;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .mo-intro {
   margin: 0 0 10px;
   font-size: 13px;

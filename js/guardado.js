@@ -90,7 +90,15 @@ var Guardado = (function () {
     var estado = Juego.estado();
     if (!estado) return false;
     try {
-      backend.guardar(estado);
+      var r = backend.guardar(estado);
+      // Los backends asíncronos (nube) devuelven una promesa: capturamos
+      // su posible fallo para no dejar rechazos sin manejar (el aviso con
+      // UI y los reintentos llegan en T5.6).
+      if (r && typeof r.then === "function") {
+        r.then(null, function (e) {
+          console.warn("Guardado: fallo asíncrono del backend", e && e.message);
+        });
+      }
       return true;
     } catch (e) {
       console.error("Guardado: no se pudo guardar", e);
