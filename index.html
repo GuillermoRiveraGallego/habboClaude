@@ -92,6 +92,12 @@
 <script src="js/casino.js"></script>
 <script src="js/guardado.js"></script>
 <script src="js/ambiente.js"></script>
+<!-- Nube (Supabase): config local + librería vendorizada + servicio.
+     Independientes de la cadena del juego; nada depende aún de ellos.
+     Si config.js no existe o está vacío, el juego arranca igual. -->
+<script src="config.js"></script>
+<script src="js/vendor/supabase.js"></script>
+<script src="js/services/supabase.js"></script>
 <script>
 (function () {
   var prueba = new URLSearchParams(location.search).get("prueba");
@@ -117,6 +123,13 @@
   Minijuegos.iniciar();
   Casino.iniciar();
   Ambiente.iniciar();
+
+  // Nube (Supabase): solo prepara la infraestructura (T2). No hace
+  // login ni guarda nada todavía; si no hay config, queda deshabilitada.
+  if (window.Nube) {
+    Nube.inicializar();
+    console.log("Nube:", Nube.estado().estado, "-", Nube.estado().motivo || "disponible");
+  }
 
   // responsive: el panel lateral se ancla sobre el HUD (var CSS)
   // y el lienzo se adapta al redimensionar la ventana

@@ -31,6 +31,8 @@ paleta.js → iso.js → furnis.js → avatar.js → juego.js → mascotas.js
 → npcs.js → tareas.js → sala.js → ui.js → minijuegos.js → casino.js → guardado.js → ambiente.js
 ```
 
+Después de esa cadena, y antes del `<script>` de arranque, se cargan los scripts de la nube (independientes del juego; nada del juego depende aún de ellos): `config.js` → `js/vendor/supabase.js` → `js/services/supabase.js`.
+
 | Global | Responsabilidad |
 |---|---|
 | `Paleta` | Paleta cerrada de 20 colores con 3 variantes precalculadas (`sup`/`izq`/`der`). Un nombre fuera de paleta pinta magenta y avisa por consola. |
@@ -45,8 +47,9 @@ paleta.js → iso.js → furnis.js → avatar.js → juego.js → mascotas.js
 | `UI` | HUD, panel lateral (catálogo/inventario/salas/mascotas/avatar), menú de furni, avisos. Orquesta `Juego` (estado) y `Sala` (motor). |
 | `Minijuegos` | Modal del ordenador fijo del Salón: 5 juegos con enfriamiento de 90 s (arranca al INICIAR la partida). |
 | `Casino` | Modal de los 5 juegos de apuestas del casino: dados, ruleta europea, tragaperras (modo máquina: Tirar se rearma solo), blackjack y "Sigue la bolita" (trile: la mezcla de vasos se anima de verdad en el DOM, 3 velocidades x1.5/x2/x3 — el único con habilidad). Sistema común: selector de apuesta compartido, `Juego.apostarCasino(n)` cobra por adelantado y `Juego.premioCasino(n)` abona el premio TOTAL (apuesta × multiplicador) disparando `cambio()` → autoguardado. La lógica de cada juego es pura (`resolverDados/Ruleta/Tragaperras`, `valorMano`, `generarTrile`) con azar real de `Math.random()`, y está expuesta para `casino_flujo`. Se abre al pulsar un furni con `def.juegoCasino` en modo pasear. La migración convierte la retirada `mesa_poker` en `mesa_trile`. |
-| `Guardado` | localStorage, clave `habbo_solo_v1`, con debounce de 400 ms + intervalo de 10 s + `beforeunload`. |
+| `Guardado` | **Orquestador de persistencia** (única frontera de guardado del juego): autoguardado con debounce de 400 ms + intervalo de 10 s + `beforeunload`/`visibilitychange` y aviso de error; delega el leer/escribir en el **backend activo**. El backend por defecto es `AlmacenLocal` (localStorage, clave `habbo_solo_v1`, síncrono, expone `CLAVE`/`VERSION`). Contrato de backend: `{ nombre, cargar()→estado\|null, guardar(estado)→bool, reiniciar() }` (pueden ser Promesa; el local no lo es, así que arranque y modos de prueba siguen síncronos). El hook `usarBackend()` queda preparado para enchufar el backend de nube (asíncrono) en T5 cuando haya sesión de Auth y `Nube.disponible()`; en T3 no se usa. |
 | `Ambiente` | Ciclo día/noche: 4 fases que tiñen la paleta entera; por defecto sigue la hora real (`"auto"`). De noche/atardecer los furnis con `def.luz` dibujan halo. |
+| `Nube` | **Único punto de acceso a Supabase** de todo el proyecto (nadie más toca `window.supabase`). Vive en `js/services/supabase.js`. Lee las claves de `window.SUPABASE_CONFIG` (definido en `config.js`, ignorado por Git; plantilla en `config.example.js`), crea el cliente y expone `inicializar()`/`disponible()`/`cliente()`/`estado()`. Diseño defensivo: sin config o sin la librería vendorizada (`js/vendor/supabase.js`, build UMD pinado), queda deshabilitado y el juego sigue igual. **Estado T2**: solo prepara la infraestructura — aún sin login, guardado, sincronización ni Realtime. La Publishable Key es pública (la protege RLS); nunca se usa `service_role`. |
 
 El arranque y el cableado de todo está en el `<script>` inline al final de `index.html`. La interfaz es responsive: el arranque escucha `resize` y llama a `Sala.redimensionar()` (re-encuadra el lienzo), y publica la variable CSS `--alto-hud` (altura real del HUD) de la que cuelga la posición del panel lateral; en pantallas estrechas los botones del HUD ocultan su `<span class="etiqueta">` y quedan solo con el emoji.
 
