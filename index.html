@@ -65,6 +65,7 @@
       <button data-panel="tareas">📋 <span class="etiqueta">Tareas</span></button>
       <button data-panel="mascotas">🐾 <span class="etiqueta">Mascotas</span></button>
       <button data-panel="avatar">👤 <span class="etiqueta">Avatar</span></button>
+      <button id="btn-cuenta" title="Cuenta (jugando en local)">☁️ <span class="etiqueta" id="hud-cuenta-estado">Local</span></button>
     </div>
   </div>
 
@@ -133,6 +134,34 @@
     Nube.inicializar();
     console.log("Nube:", Nube.estado().estado, "-", Nube.estado().motivo || "disponible");
   }
+
+  // HUD de cuenta (T4.3): el botón abre el modal e indica el estado
+  // (Local / email), refrescándose al iniciar o cerrar sesión. No se
+  // monta en modo prueba (para no ensuciar tests ni capturas).
+  (function () {
+    var btn = document.getElementById("btn-cuenta");
+    if (!btn) return;
+    if (prueba) { btn.style.display = "none"; return; }
+    var etiqueta = document.getElementById("hud-cuenta-estado");
+    function refrescar(sesion) {
+      var email = sesion && sesion.user && sesion.user.email;
+      etiqueta.textContent = email || "Local";
+      btn.title = email ? ("Cuenta: " + email) : "Cuenta (jugando en local)";
+    }
+    btn.addEventListener("click", function () {
+      if (window.Cuenta) Cuenta.abrir();
+    });
+    if (window.Nube && Nube.disponible()) {
+      // onAuthStateChange emite la sesión inicial y cada login/logout
+      Nube.alCambiarSesion(function (sesion) { refrescar(sesion); });
+    } else {
+      // Supabase no configurado: se juega en local. El botón sigue
+      // abriendo el modal, que explica cómo configurarlo.
+      refrescar(null);
+      btn.classList.add("sin-nube");
+      btn.title = "Supabase no configurado — juegas en local";
+    }
+  })();
 
   // responsive: el panel lateral se ancla sobre el HUD (var CSS)
   // y el lienzo se adapta al redimensionar la ventana
@@ -871,6 +900,65 @@
     paso11("no se coloca un mueble sobre un NPC", !Sala.validar("sofa_cuero", 6, 6, 0));
 
     cajaTexto(log11.join("\n"));
+  }
+
+  // ---- pruebas de la UI de cuenta (Supabase Auth) ----
+  // Nube se mockea para no tocar la red ni crear usuarios reales.
+
+  if (prueba === "cuenta") {
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve(null); };
+    Cuenta.abrir();
+  } else if (prueba === "cuenta_logueado") {
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve({ email: "jugador@ejemplo.com" }); };
+    Cuenta.abrir();
+  } else if (prueba === "cuenta_flujo") {
+    var log12 = [];
+    function paso12(nombre, ok) { log12.push((ok ? "OK " : "FALLO ") + nombre); }
+    function tick12() { return new Promise(function (res) { setTimeout(res, 30); }); }
+
+    // Nube mockeada: sesión en memoria, sin red ni usuarios reales
+    var sesionFake = null;
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve(sesionFake ? sesionFake.user : null); };
+    Nube.entrar = function (email) {
+      sesionFake = { user: { email: email } };
+      return Promise.resolve({ data: {}, error: null });
+    };
+    Nube.registrar = Nube.entrar;
+    Nube.salir = function () { sesionFake = null; return Promise.resolve({ error: null }); };
+
+    function contCuenta() { return document.getElementById("mc-contenido"); }
+
+    Cuenta.abrir();
+    tick12().then(function () {
+      paso12("sin sesión: se muestra el formulario", !!document.getElementById("mc-form"));
+      paso12("sin sesión: pestañas Entrar y Registrarse",
+        document.querySelectorAll(".mc-tab").length === 2);
+      document.getElementById("mc-email").value = "jugador@ejemplo.com";
+      document.getElementById("mc-pass").value = "clave123";
+      document.getElementById("mc-form").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }));
+      return tick12();
+    }).then(function () {
+      paso12("tras entrar: estado logueado (botón cerrar sesión)",
+        !!document.getElementById("mc-salir"));
+      var b = contCuenta().querySelector(".mc-info b");
+      paso12("tras entrar: muestra el email",
+        !!b && b.textContent.indexOf("jugador@ejemplo.com") !== -1);
+      document.getElementById("mc-salir").click();
+      return tick12();
+    }).then(function () {
+      paso12("tras cerrar sesión: vuelve al formulario", !!document.getElementById("mc-form"));
+      Nube.disponible = function () { return false; };
+      Cuenta.render();
+      return tick12();
+    }).then(function () {
+      paso12("sin nube: avisa de que no está configurado",
+        contCuenta().textContent.indexOf("no está configurado") !== -1);
+      cajaTexto(log12.join("\n"));
+    });
   }
 })();
 </script>

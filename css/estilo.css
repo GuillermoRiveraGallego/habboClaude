@@ -638,6 +638,9 @@ button.mini.activo {
 .mc-mensaje.error { color: #e08a7a; }
 .mc-mensaje.ok { color: #7ac29a; }
 
+/* Botón de cuenta cuando Supabase no está configurado */
+#btn-cuenta.sin-nube { opacity: 0.55; }
+
 .mo-intro {
   margin: 0 0 10px;
   font-size: 13px;
