@@ -1372,6 +1372,161 @@ button.mini.activo {
   .mo-pregunta { font-size: 24px; }
 }
 
+/* ============ REDISEÑO MÓVIL (chrome táctil) ============ */
+/* Lo activa Movil.iniciar() añadiendo la clase body.movil según el
+   breakpoint (o forzado en pruebas). Reorganiza el HUD existente sin
+   tocar su lógica: tira de estado arriba, barra de pestañas abajo con
+   etiquetas visibles y un cajón "Más" para las acciones secundarias.
+   Va DESPUÉS de las media queries para ganar por orden de origen. */
+
+/* piezas del chrome: invisibles hasta que body.movil las muestra */
+#movil-top, #movil-drawer, #movil-drawer-fondo, #btn-mas { display: none; }
+
+/* ---- tira de estado superior ---- */
+body.movil #movil-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 10px;
+  padding-top: calc(6px + env(safe-area-inset-top));
+  background: linear-gradient(#2b2f3a, rgba(43, 47, 58, 0.82));
+  z-index: 6;
+  pointer-events: none;              /* la tira no captura el arrastre del lienzo */
+}
+body.movil #movil-top > * { pointer-events: auto; }   /* sus chips sí */
+body.movil #movil-top #hud-sala-caja {
+  max-width: 44vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.movil #movil-top #btn-ambiente {
+  margin-left: auto;
+  background: #3b4254;
+  color: #f2efe6;
+  border: 2px solid #565f75;
+  border-radius: 10px;
+  padding: 6px 11px;
+  font-size: 16px;
+}
+
+/* ---- barra de pestañas inferior ---- */
+body.movil #hud {
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+}
+body.movil #hud-marca { display: none; }
+body.movil #hud-botones {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  gap: 3px;
+}
+/* en la barra solo viven las acciones principales */
+body.movil #hud-botones [data-panel="tareas"],
+body.movil #hud-botones [data-panel="mascotas"],
+body.movil #hud-botones [data-panel="avatar"],
+body.movil #hud-botones #btn-cuenta { display: none; }
+body.movil #btn-mas { display: flex; }
+
+/* cada pestaña: icono grande arriba, etiqueta pequeña debajo */
+body.movil #hud-botones button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 5px 2px;
+  border-bottom-width: 2px;
+  font-size: 19px;                   /* el emoji */
+  line-height: 1;
+}
+body.movil #hud-botones .etiqueta {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* ---- cajón "Más" ---- */
+body.movil #movil-drawer-fondo {
+  display: block;
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 20, 26, 0.5);
+  z-index: 9;
+}
+body.movil #movil-drawer {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--alto-hud, 56px);
+  background: #2b2f3a;
+  border-top: 3px solid #464d5e;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  padding: 4px 14px 16px;
+  z-index: 10;
+}
+.md-tirador {
+  width: 44px;
+  height: 5px;
+  background: #565f75;
+  border-radius: 3px;
+  margin: 8px auto 4px;
+}
+#movil-drawer h4 {
+  margin: 12px 2px 8px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #a3a8af;
+}
+.md-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.md-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #3b4254;
+  color: #f2efe6;
+  border: 2px solid #565f75;
+  border-bottom-width: 4px;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 15px;
+  font-weight: bold;
+  min-height: 52px;
+}
+.md-item .md-icono { font-size: 20px; }
+.md-item:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+/* ---- reubicaciones para dejar hueco a las tiras ---- */
+body.movil #panel {
+  top: 52px;
+  left: 8px;
+  right: 8px;
+  width: auto;
+  bottom: calc(var(--alto-hud, 56px) + 8px);
+}
+body.movil #pista-fantasma { top: 50px; }
+body.movil .aviso-invitado { top: 50px; }
+body.movil #avisos { bottom: calc(var(--alto-hud, 56px) + 10px); }
+body.movil #panel-chat {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  bottom: calc(var(--alto-hud, 56px) + 10px);
+}
+
 /* ============ PÁGINAS DE PRUEBA (catalogo.html) ============ */
 
 body.prueba {

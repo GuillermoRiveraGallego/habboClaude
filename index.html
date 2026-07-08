@@ -89,6 +89,7 @@
 <script src="js/tareas.js"></script>
 <script src="js/sala.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/movil.js"></script>
 <script src="js/minijuegos.js"></script>
 <script src="js/casino.js"></script>
 <script src="js/guardado.js"></script>
@@ -216,6 +217,7 @@
     Minijuegos.iniciar();
     Casino.iniciar();
     Ambiente.iniciar();
+    if (window.Movil) Movil.iniciar(); // chrome táctil (barra + cajón) en móvil
 
     // responsive: el panel lateral se ancla sobre el HUD (var CSS)
     // y el lienzo se adapta al redimensionar la ventana
@@ -612,6 +614,61 @@
     paso7("la variable --alto-hud está puesta",
       document.documentElement.style.getPropertyValue("--alto-hud") !== "");
     cajaTexto(log7.join("\n"));
+  }
+
+  // ---- rediseño móvil (chrome táctil) ----
+
+  if (prueba === "movil") {
+    Movil.depurar.forzarMovil(true);   // barra + tira + cajón, sea cual sea el ancho
+    UI.abrirPanel("catalogo");         // panel a pantalla casi completa de fondo
+    Movil.depurar.abrirDrawer();       // cajón "Más" desplegado para la captura
+  } else if (prueba === "movil_flujo") {
+    var log13 = [];
+    function paso13(nombre, ok) { log13.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    // en escritorio (ancho de captura) el chrome está oculto y los chips en el HUD
+    paso13("chrome construido (barra, tira y cajón)",
+      !!document.getElementById("btn-mas") && !!document.getElementById("movil-top") &&
+      !!document.getElementById("movil-drawer"));
+    paso13("en escritorio no hay clase body.movil", !document.body.classList.contains("movil"));
+    paso13("en escritorio los créditos viven en el HUD",
+      document.getElementById("hud-creditos").closest("#hud") !== null);
+
+    // forzar el modo móvil: se reorganiza sin recargar
+    Movil.depurar.forzarMovil(true);
+    paso13("forzar móvil añade body.movil", document.body.classList.contains("movil"));
+    paso13("los chips suben a la tira superior",
+      document.getElementById("hud-cartera").parentNode.id === "movil-top" &&
+      document.getElementById("btn-ambiente").parentNode.id === "movil-top");
+    paso13("en la barra solo quedan las acciones principales",
+      getComputedStyle(document.querySelector('#hud [data-panel="tareas"]')).display === "none" &&
+      getComputedStyle(document.querySelector('#hud [data-panel="catalogo"]')).display !== "none" &&
+      getComputedStyle(document.getElementById("btn-mas")).display !== "none");
+
+    // el cajón agrupa las secundarias (Tareas, Mascotas, Avatar…)
+    document.getElementById("btn-mas").click();
+    paso13("el botón ☰ despliega el cajón",
+      !document.getElementById("movil-drawer").classList.contains("oculto"));
+    var itemsCajon = document.querySelectorAll("#movil-drawer .md-item");
+    paso13("el cajón lista las secundarias con etiqueta", itemsCajon.length >= 3 &&
+      itemsCajon[0].textContent.indexOf("Tareas") !== -1);
+
+    // proxy: pulsar "Tareas" en el cajón abre el panel real y cierra el cajón
+    itemsCajon[0].click();
+    paso13("elegir en el cajón lo cierra",
+      document.getElementById("movil-drawer").classList.contains("oculto"));
+    paso13("y abre el panel real de Tareas",
+      !document.getElementById("panel").classList.contains("oculto") &&
+      document.getElementById("panel-titulo").textContent.indexOf("Tareas") !== -1);
+
+    // volver a escritorio: los chips regresan al HUD
+    UI.cerrarPanel();
+    Movil.depurar.forzarMovil(false);
+    paso13("quitar el modo móvil devuelve los chips al HUD",
+      !document.body.classList.contains("movil") &&
+      document.getElementById("hud-cartera").parentNode.id === "hud");
+
+    cajaTexto(log13.join("\n"));
   }
 
   // ---- NPCs y chat ----
