@@ -9,7 +9,8 @@ var UI = (function () {
 
   var elCreditos, elNombreSala, elPanel, elPanelTitulo, elPanelPestanas,
       elPanelContenido, elMenuFurni, elAvisos, elPistaFantasma, btnModo,
-      elPanelMascota, elPanelChat, elChatMensajes, elChatInput;
+      elPanelMascota, elPanelChat, elChatMensajes, elChatInput,
+      elBarraColoc, elBcRotar, elBcCancelar, elBcColocar;
 
   var panelAbierto = null;      // "catalogo" | "inventario" | "salas" | "mascotas" | "tareas" | null
   var chatNpc = null;           // NPC con el chat abierto
@@ -708,10 +709,46 @@ var UI = (function () {
 
   // ---------------- colocación (fantasma) ----------------
 
+  function esMovilUI() {
+    return document.body.classList.contains("movil");
+  }
+
+  // Muestra las ayudas de colocación: la pista de teclado en escritorio y
+  // la barra flotante (⟳ · ✖ · ✔) en móvil. En móvil, además, cierra el
+  // panel para que se vea la sala y centra el fantasma para que aparezca
+  // ya en pantalla. Qué se ve realmente lo decide el CSS por breakpoint.
+  function mostrarColocacion(pref) {
+    var fant = Sala.fantasmaActual();
+    var def = fant && Furnis.get(fant.id);
+    if (elBcRotar) {
+      elBcRotar.style.display =
+        (def && def.rotaciones > 1 && def.capa !== "pared") ? "" : "none";
+    }
+    if (esMovilUI()) {
+      cerrarPanel();
+      Sala.centrarFantasma(pref);
+    }
+    elPistaFantasma.classList.remove("oculto");
+    if (elBarraColoc) elBarraColoc.classList.remove("oculto");
+    actualizarBarraColoc(Sala.fantasmaValido());
+    ocultarMenuFurni();
+  }
+
+  function ocultarColocacion() {
+    elPistaFantasma.classList.add("oculto");
+    if (elBarraColoc) elBarraColoc.classList.add("oculto");
+  }
+
+  // refleja la validez de la posición actual en el botón ✔ Colocar
+  function actualizarBarraColoc(valido) {
+    if (!elBcColocar) return;
+    elBcColocar.disabled = !valido;
+    elBcColocar.classList.toggle("bc-listo", !!valido);
+  }
+
   function empezarColocacion(id, origen, uid) {
     Sala.iniciarFantasma(id, 0, { origen: origen, uid: uid });
-    elPistaFantasma.classList.remove("oculto");
-    ocultarMenuFurni();
+    mostrarColocacion();
   }
 
   function cancelarFantasma() {
@@ -721,7 +758,7 @@ var UI = (function () {
       movimiento = null;
     }
     Sala.cancelarFantasma();
-    elPistaFantasma.classList.add("oculto");
+    ocultarColocacion();
   }
 
   function alColocar(info) {
@@ -744,7 +781,7 @@ var UI = (function () {
     }
 
     Sala.cancelarFantasma();
-    elPistaFantasma.classList.add("oculto");
+    ocultarColocacion();
   }
 
   function ponerEnSala(salaObj, inst, info) {
@@ -812,13 +849,16 @@ var UI = (function () {
     movimiento = quitarDeSala(f.uid);
     if (!movimiento) return;
     Sala.deseleccionar();
+    var pref;
     if (movimiento.pared) {
       Sala.iniciarFantasma(movimiento.id, 0, { origen: "sala", uid: movimiento.uid });
+      pref = { pared: movimiento.pared, slot: movimiento.slot };
     } else {
       Sala.iniciarFantasma(movimiento.id, movimiento.rot || 0, { origen: "sala", uid: movimiento.uid });
+      pref = { x: movimiento.x, y: movimiento.y };
     }
-    elPistaFantasma.classList.remove("oculto");
-    ocultarMenuFurni();
+    // en móvil el fantasma reaparece en el sitio original del mueble
+    mostrarColocacion(pref);
   }
 
   function hogarHabitado(f) {
@@ -870,6 +910,10 @@ var UI = (function () {
     elMenuFurni = document.getElementById("menu-furni");
     elAvisos = document.getElementById("avisos");
     elPistaFantasma = document.getElementById("pista-fantasma");
+    elBarraColoc = document.getElementById("barra-colocacion");
+    elBcRotar = document.getElementById("bc-rotar");
+    elBcCancelar = document.getElementById("bc-cancelar");
+    elBcColocar = document.getElementById("bc-colocar");
     btnModo = document.getElementById("btn-modo");
     elPanelMascota = document.getElementById("panel-mascota");
     elPanelChat = document.getElementById("panel-chat");
@@ -917,6 +961,19 @@ var UI = (function () {
       var f = Sala.seleccionado();
       if (f) accionVender(f);
     });
+
+    // barra flotante de colocación (móvil): ⟳ · ✖ Cancelar · ✔ Colocar
+    if (elBcRotar) {
+      elBcRotar.addEventListener("click", function () { Sala.rotarFantasma(); });
+    }
+    if (elBcCancelar) {
+      elBcCancelar.addEventListener("click", cancelarFantasma);
+    }
+    if (elBcColocar) {
+      elBcColocar.addEventListener("click", function () {
+        if (!Sala.confirmarFantasma()) avisar("Ahí no cabe: prueba otro sitio", "error");
+      });
+    }
 
     // panel flotante de mascota
     document.getElementById("pm-cerrar").addEventListener("click", cerrarPanelMascota);
@@ -975,6 +1032,7 @@ var UI = (function () {
     Sala.enlazar({
       alColocar: alColocar,
       alCancelarFantasma: cancelarFantasma,
+      alFantasmaMovido: actualizarBarraColoc,
       alSeleccionar: function (f, punto) {
         if (f && f.fijo) {
           avisar("El ordenador vino con la casa: no se puede tocar", "error");

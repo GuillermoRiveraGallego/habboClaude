@@ -1527,6 +1527,64 @@ body.movil #panel-chat {
   bottom: calc(var(--alto-hud, 56px) + 10px);
 }
 
+/* ---- barra flotante de colocación (móvil) ---- */
+/* En escritorio se coloca con click + la pista de teclado, así que la
+   barra queda oculta. En móvil sustituye a #pista-fantasma por acciones
+   táctiles grandes: girar, cancelar y confirmar. */
+#barra-colocacion { display: none; }
+
+body.movil #pista-fantasma { display: none; }
+
+body.movil #barra-colocacion:not(.oculto) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--alto-hud, 56px) + 10px);
+  background: rgba(43, 47, 58, 0.96);
+  border: 2px solid #565f75;
+  border-radius: 14px;
+  padding: 10px 12px;
+  z-index: 8;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+body.movil #barra-colocacion .bc-pista {
+  text-align: center;
+  font-size: 12.5px;
+  color: #cfd3da;
+}
+body.movil #barra-colocacion .bc-acciones { display: flex; gap: 8px; }
+body.movil #barra-colocacion button {
+  flex: 1;
+  min-height: 50px;
+  background: #3b4254;
+  color: #f2efe6;
+  border: 2px solid #565f75;
+  border-bottom-width: 4px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: bold;
+}
+body.movil #barra-colocacion button:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+body.movil #bc-rotar { flex: 0 0 54px; font-size: 22px; }
+body.movil #bc-colocar {
+  background: #7fae5c;
+  border-color: #5e8843;
+  color: #17240f;
+}
+body.movil #bc-colocar.bc-listo { box-shadow: 0 0 14px rgba(127, 174, 92, 0.6); }
+body.movil #bc-colocar:disabled {
+  background: #3b4254;
+  border-color: #565f75;
+  color: #7c8390;
+  opacity: 0.7;
+}
+
 /* ============ PÁGINAS DE PRUEBA (catalogo.html) ============ */
 
 body.prueba {

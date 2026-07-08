@@ -24,6 +24,16 @@
       Click: colocar · <b>R</b>: rotar · <b>Esc</b> o click derecho: cancelar
     </div>
 
+    <!-- barra flotante de colocación (solo visible en móvil, body.movil) -->
+    <div id="barra-colocacion" class="oculto">
+      <span class="bc-pista">Arrastra el mueble a su sitio</span>
+      <div class="bc-acciones">
+        <button id="bc-rotar" type="button" title="Girar">⟳</button>
+        <button id="bc-cancelar" type="button">✖ Cancelar</button>
+        <button id="bc-colocar" type="button">✔ Colocar</button>
+      </div>
+    </div>
+
     <div id="panel-mascota" class="oculto">
       <div id="pm-cabecera">
         <span id="pm-titulo"></span>
@@ -669,6 +679,70 @@
       document.getElementById("hud-cartera").parentNode.id === "hud");
 
     cajaTexto(log13.join("\n"));
+  }
+
+  // ---- colocación táctil de muebles (móvil) ----
+
+  if (prueba === "colocacion") {
+    Movil.depurar.forzarMovil(true);   // barra táctil, sea cual sea el ancho
+    UI.empezarColocacion("sofa_rojo", "catalogo"); // cierra catálogo, centra el fantasma y abre la barra
+  } else if (prueba === "colocacion_flujo") {
+    var log14 = [];
+    function paso14(nombre, ok) { log14.push((ok ? "OK " : "FALLO ") + nombre); }
+
+    Juego.ganar(3000);
+    Movil.depurar.forzarMovil(true);
+    var barra = document.getElementById("barra-colocacion");
+    var panelEl = document.getElementById("panel");
+
+    // elegir un mueble en el catálogo: se cierra el panel y arranca el fantasma
+    UI.abrirPanel("catalogo");
+    paso14("el catálogo se abre", !panelEl.classList.contains("oculto"));
+    var creditos0 = Juego.creditos();
+    var furnis0 = Juego.salaActual().furnis.length;
+    UI.empezarColocacion("sofa_rojo", "catalogo");
+    paso14("elegir un mueble cierra el catálogo en móvil", panelEl.classList.contains("oculto"));
+    paso14("aparece la barra de colocación", !barra.classList.contains("oculto"));
+    paso14("hay un fantasma activo", Sala.hayFantasma());
+    paso14("el fantasma se centra en un hueco válido", Sala.fantasmaValido());
+    paso14("el botón ✔ queda habilitado en posición válida",
+      !document.getElementById("bc-colocar").disabled);
+
+    Sala.rotarFantasma();
+    paso14("rotar mantiene el fantasma", Sala.hayFantasma());
+
+    // confirmar: compra, coloca y cierra la barra
+    var ok14 = Sala.confirmarFantasma();
+    paso14("confirmar coloca el mueble", ok14 && !Sala.hayFantasma());
+    paso14("se cobra el mueble", Juego.creditos() < creditos0);
+    paso14("el mueble entra en la sala", Juego.salaActual().furnis.length === furnis0 + 1);
+    paso14("la barra se oculta al colocar", barra.classList.contains("oculto"));
+
+    // mover un mueble existente: el fantasma reaparece en su sitio original
+    var colocado = Juego.salaActual().furnis[Juego.salaActual().furnis.length - 1];
+    var ox = colocado.x, oy = colocado.y;
+    Sala.modo("decorar");
+    Sala.depurar.seleccionar(colocado.uid);
+    document.getElementById("btn-mover").click();
+    paso14("mover arranca un fantasma", Sala.hayFantasma());
+    paso14("el fantasma de mover es válido en su casilla original", Sala.fantasmaValido());
+    Sala.confirmarFantasma();
+    paso14("recolocar lo devuelve a su casilla original",
+      Juego.salaActual().furnis.some(function (f) {
+        return f.uid === colocado.uid && f.x === ox && f.y === oy;
+      }));
+
+    // cancelar: no coloca nada
+    var furnis1 = Juego.salaActual().furnis.length;
+    UI.empezarColocacion("mesa_madera", "catalogo");
+    paso14("una colocación nueva reabre la barra", !barra.classList.contains("oculto"));
+    document.getElementById("bc-cancelar").click();
+    paso14("cancelar oculta la barra", barra.classList.contains("oculto"));
+    paso14("cancelar no coloca nada", Juego.salaActual().furnis.length === furnis1);
+    paso14("cancelar quita el fantasma", !Sala.hayFantasma());
+
+    Movil.depurar.forzarMovil(false);
+    cajaTexto(log14.join("\n"));
   }
 
   // ---- NPCs y chat ----

@@ -445,24 +445,10 @@ var Sala = (function () {
   }
 
   function manejarClickDecorar(tx, ty, pared) {
-    // 1) con fantasma: intentar colocar
+    // 1) con fantasma: intentar colocar en la posición actual
+    //    (usa hover/hoverPared, que alClick acaba de fijar)
     if (fantasma) {
-      var def = Furnis.get(fantasma.id);
-      if (def.capa === "pared") {
-        if (pared && validarPared(fantasma.id, pared.pared, pared.slot, fantasma.uid)) {
-          if (cbs.alColocar) cbs.alColocar({
-            id: fantasma.id, origen: fantasma.origen, uid: fantasma.uid,
-            pared: pared.pared, slot: pared.slot
-          });
-        }
-      } else if (hover && validar(fantasma.id, hover.x, hover.y, fantasma.rot, fantasma.uid)) {
-        if (cbs.alColocar) cbs.alColocar({
-          id: fantasma.id, origen: fantasma.origen, uid: fantasma.uid,
-          x: hover.x, y: hover.y, rot: fantasma.rot
-        });
-      } else if (hover) {
-        marcar(hover.x, hover.y, "rojo");
-      }
+      confirmarFantasma();
       return;
     }
     // 2) sin fantasma: seleccionar furni
@@ -764,11 +750,13 @@ var Sala = (function () {
 
   // ---------------- eventos ----------------
 
-  function mundoDeEvento(e) {
+  // offsetY (px CSS) desplaza hacia arriba el punto interpretado: en
+  // táctil "levanta" el fantasma sobre el dedo para que se vea.
+  function mundoDeEvento(e, offsetY) {
     var r = canvas.getBoundingClientRect();
     return {
       sx: (e.clientX - r.left - trasX) / escala,
-      sy: (e.clientY - r.top - trasY) / escala
+      sy: (e.clientY - r.top - (offsetY || 0) - trasY) / escala
     };
   }
 
@@ -813,6 +801,50 @@ var Sala = (function () {
     hover = dentro(c.x, c.y) ? c : null;
     hoverPared = paredDe(m.sx, m.sy);
     canvas.style.cursor = (hover || hoverPared) ? "pointer" : "default";
+  }
+
+  // ---------------- táctil (colocación en móvil) ----------------
+  // Solo secuestramos el táctil cuando hay fantasma y estamos en modo
+  // móvil: arrastrar con el dedo mueve el fantasma en vivo, pero NUNCA
+  // coloca (eso lo hace el botón ✔ de la barra). Sin fantasma dejamos que
+  // el navegador sintetice el click y el juego se comporte como siempre
+  // (caminar, seleccionar), de modo que escritorio queda intacto.
+
+  var TACTIL_OFFSET_Y = 46; // px CSS: levanta el fantasma sobre el dedo
+
+  function tactilActivo() {
+    return !!fantasma && document.body.classList.contains("movil");
+  }
+
+  function moverFantasmaAToque(t) {
+    var def = Furnis.get(fantasma.id);
+    if (def.capa === "pared") {
+      var mp = mundoDeEvento(t, 0); // en la pared el dedo apunta directo
+      var pared = paredDe(mp.sx, mp.sy);
+      if (pared) hoverPared = pared;
+    } else {
+      var m = mundoDeEvento(t, TACTIL_OFFSET_Y);
+      var c = casillaDe(m.sx, m.sy);
+      if (dentro(c.x, c.y)) hover = c; // fuera del borde conserva el último
+    }
+    notificarFantasmaMovido();
+  }
+
+  function alToqueInicio(e) {
+    if (!sala || !tactilActivo() || !e.touches.length) return;
+    moverFantasmaAToque(e.touches[0]);
+    e.preventDefault(); // evita el click sintético que colocaría al soltar
+  }
+
+  function alToqueMover(e) {
+    if (!sala || !tactilActivo() || !e.touches.length) return;
+    moverFantasmaAToque(e.touches[0]);
+    e.preventDefault(); // evita el desplazamiento de la página al arrastrar
+  }
+
+  function alToqueFin(e) {
+    if (!sala || !tactilActivo()) return;
+    e.preventDefault(); // no se coloca al soltar: se confirma con la barra
   }
 
   function alTecla(e) {
@@ -877,6 +909,11 @@ var Sala = (function () {
       e.preventDefault();
       if (fantasma && cbs.alCancelarFantasma) cbs.alCancelarFantasma();
     });
+    // táctil: arrastrar el fantasma en móvil (passive:false para poder
+    // preventDefault y suprimir scroll y click sintético)
+    canvas.addEventListener("touchstart", alToqueInicio, { passive: false });
+    canvas.addEventListener("touchmove", alToqueMover, { passive: false });
+    canvas.addEventListener("touchend", alToqueFin, { passive: false });
     window.addEventListener("keydown", alTecla);
 
     requestAnimationFrame(bucle);
@@ -930,6 +967,99 @@ var Sala = (function () {
     if (!fantasma) return;
     var def = Furnis.get(fantasma.id);
     fantasma.rot = (fantasma.rot + 1) % def.rotaciones;
+    notificarFantasmaMovido();
+  }
+
+  // ¿la posición actual del fantasma (hover / hoverPared) es válida?
+  function fantasmaValido() {
+    if (!fantasma) return false;
+    var def = Furnis.get(fantasma.id);
+    if (def.capa === "pared") {
+      return !!(hoverPared &&
+        validarPared(fantasma.id, hoverPared.pared, hoverPared.slot, fantasma.uid));
+    }
+    return !!(hover && validar(fantasma.id, hover.x, hover.y, fantasma.rot, fantasma.uid));
+  }
+
+  // Confirma la colocación en la posición actual. Devuelve true si se
+  // colocó. La usan el click de escritorio y el botón ✔ de la barra táctil.
+  function confirmarFantasma() {
+    if (!fantasma) return false;
+    if (!fantasmaValido()) {
+      if (hover) marcar(hover.x, hover.y, "rojo");
+      return false;
+    }
+    var def = Furnis.get(fantasma.id);
+    if (def.capa === "pared") {
+      if (cbs.alColocar) cbs.alColocar({
+        id: fantasma.id, origen: fantasma.origen, uid: fantasma.uid,
+        pared: hoverPared.pared, slot: hoverPared.slot
+      });
+    } else if (cbs.alColocar) {
+      cbs.alColocar({
+        id: fantasma.id, origen: fantasma.origen, uid: fantasma.uid,
+        x: hover.x, y: hover.y, rot: fantasma.rot
+      });
+    }
+    return true;
+  }
+
+  // Avisa a la UI (barra táctil) de que el fantasma se movió y de si la
+  // posición nueva es válida, para reflejarlo en el botón ✔.
+  function notificarFantasmaMovido() {
+    if (cbs.alFantasmaMovido) cbs.alFantasmaMovido(fantasmaValido());
+  }
+
+  // Sitúa el fantasma para que aparezca ya en pantalla al empezar la
+  // colocación en móvil. Si se pasa `pref` (posición preferida, p. ej. el
+  // sitio original de un mueble que se está moviendo) y sigue siendo
+  // válida, se usa; si no, se busca un hueco válido cerca del centro (o,
+  // si no lo hay, el centro aunque quede en rojo).
+  function centrarFantasma(pref) {
+    if (!fantasma) return;
+    var def = Furnis.get(fantasma.id);
+    if (def.capa === "pared") {
+      if (pref && pref.pared !== undefined &&
+          validarPared(fantasma.id, pref.pared, pref.slot, fantasma.uid)) {
+        hoverPared = { pared: pref.pared, slot: pref.slot };
+      } else {
+        hoverPared = huecoParedCentral(fantasma.id, fantasma.uid);
+      }
+    } else if (pref && pref.x !== undefined &&
+        validar(fantasma.id, pref.x, pref.y, fantasma.rot, fantasma.uid)) {
+      hover = { x: pref.x, y: pref.y };
+    } else {
+      hover = huecoSueloCentral(fantasma.id, fantasma.rot, fantasma.uid);
+    }
+    notificarFantasmaMovido();
+  }
+
+  function huecoSueloCentral(id, rot, uid) {
+    var cx = sala.ancho / 2, cy = sala.fondo / 2, mejor = null, md = Infinity;
+    for (var y = 0; y < sala.fondo; y++)
+      for (var x = 0; x < sala.ancho; x++)
+        if (validar(id, x, y, rot, uid)) {
+          var d = (x + 0.5 - cx) * (x + 0.5 - cx) + (y + 0.5 - cy) * (y + 0.5 - cy);
+          if (d < md) { md = d; mejor = { x: x, y: y }; }
+        }
+    return mejor || { x: Math.floor(cx), y: Math.floor(cy) };
+  }
+
+  function huecoParedCentral(id, uid) {
+    var pruebas = [], s;
+    for (s = 0; s < sala.ancho; s++) pruebas.push({ pared: "x", slot: s });
+    for (s = 0; s < sala.fondo; s++) pruebas.push({ pared: "y", slot: s });
+    // preferir los slots centrales de cada pared
+    pruebas.sort(function (a, b) {
+      var ma = (a.pared === "x" ? sala.ancho : sala.fondo) / 2;
+      var mb = (b.pared === "x" ? sala.ancho : sala.fondo) / 2;
+      return Math.abs(a.slot + 0.5 - ma) - Math.abs(b.slot + 0.5 - mb);
+    });
+    for (var i = 0; i < pruebas.length; i++) {
+      var p = pruebas[i];
+      if (validarPared(id, p.pared, p.slot, uid)) return p;
+    }
+    return { pared: "x", slot: Math.floor(sala.ancho / 2) };
   }
 
   var depurar = {
@@ -952,6 +1082,7 @@ var Sala = (function () {
     },
     hover: function (tx, ty) { hover = { x: tx, y: ty }; },
     hoverPared: function (pared, slot) { hoverPared = { pared: pared, slot: slot }; },
+    centrar: function () { centrarFantasma(); },
     seleccionar: function (uid) {
       for (var i = 0; i < sala.furnis.length; i++) {
         if (sala.furnis[i].uid === uid) {
@@ -972,6 +1103,9 @@ var Sala = (function () {
     iniciarFantasma: iniciarFantasma,
     cancelarFantasma: cancelarFantasma,
     rotarFantasma: rotarFantasma,
+    confirmarFantasma: confirmarFantasma,
+    centrarFantasma: centrarFantasma,
+    fantasmaValido: fantasmaValido,
     hayFantasma: function () { return !!fantasma; },
     fantasmaActual: function () { return fantasma; },
     seleccionado: function () { return seleccion; },
