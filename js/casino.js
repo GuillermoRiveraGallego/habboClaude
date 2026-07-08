@@ -21,7 +21,7 @@
 // ============================================================
 var Casino = (function () {
 
-  var elFondo = null, elContenido = null, elTitulo = null, elPie = null;
+  var elFondo = null, elContenido = null, elTitulo = null, elPie = null, modalApi = null;
   var temporizadores = [];
   var apuesta = 25; // se recuerda entre juegos (efímera)
 
@@ -156,26 +156,21 @@ var Casino = (function () {
   function iniciar() {
     elFondo = document.createElement("div");
     elFondo.id = "modal-fondo-casino";
-    elFondo.className = "oculto";
+    elFondo.className = "modal-fondo oculto";
     elFondo.innerHTML =
-      '<div id="modal-casino">' +
+      '<div id="modal-casino" class="modal-caja">' +
         '<div class="ca-barra"><span id="ca-titulo">🎰 Casino</span>' +
-        '<button id="ca-cerrar">✕</button></div>' +
+        '<button id="ca-cerrar" class="modal-cerrar">✕</button></div>' +
         '<div id="ca-contenido"></div>' +
         '<div class="ca-pie">💰 <span id="ca-creditos">0</span> créditos · ' +
         '<span id="ca-stats"></span></div>' +
       '</div>';
-    document.getElementById("zona-canvas").appendChild(elFondo);
+    document.body.appendChild(elFondo);
     elContenido = document.getElementById("ca-contenido");
     elTitulo = document.getElementById("ca-titulo");
     elPie = document.getElementById("ca-stats");
-    document.getElementById("ca-cerrar").addEventListener("click", cerrar);
-    elFondo.addEventListener("click", function (e) {
-      if (e.target === elFondo) cerrar();
-    });
-    window.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !elFondo.classList.contains("oculto")) cerrar();
-    });
+    // Modal se encarga de ✕, clic fuera, Escape y la animación.
+    modalApi = Modal.registrar(elFondo, { alCerrar: limpiar });
     Juego.ponAlCambiar(refrescarPie);
   }
 
@@ -190,7 +185,7 @@ var Casino = (function () {
   function abrir(juego) {
     var j = JUEGOS[juego];
     if (!j) return;
-    elFondo.classList.remove("oculto");
+    modalApi.abrir();
     elTitulo.textContent = j.icono + " " + j.nombre;
     refrescarPie();
     limpiar();
@@ -198,8 +193,7 @@ var Casino = (function () {
   }
 
   function cerrar() {
-    limpiar();
-    elFondo.classList.add("oculto");
+    if (modalApi) modalApi.cerrar();
   }
 
   // ----------------------------------------------------------

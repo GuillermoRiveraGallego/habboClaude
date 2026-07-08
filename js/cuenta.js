@@ -19,6 +19,7 @@ var Cuenta = (function () {
 
   var elFondo = null;
   var elContenido = null;
+  var modalApi = null;
   var montado = false;
   var pestana = "entrar";   // "entrar" | "registrar"
 
@@ -28,34 +29,28 @@ var Cuenta = (function () {
     if (montado) return;
     elFondo = document.createElement("div");
     elFondo.id = "modal-fondo-cuenta";
-    elFondo.className = "oculto";
+    elFondo.className = "modal-fondo oculto";
     elFondo.innerHTML =
-      '<div id="modal-cuenta">' +
+      '<div id="modal-cuenta" class="modal-caja">' +
         '<div class="mc-barra"><span>👤 Cuenta</span>' +
-        '<button id="mc-cerrar" title="Cerrar">✕</button></div>' +
+        '<button id="mc-cerrar" class="modal-cerrar" title="Cerrar">✕</button></div>' +
         '<div id="mc-contenido"></div>' +
       '</div>';
-    var zona = document.getElementById("zona-canvas") || document.body;
-    zona.appendChild(elFondo);
+    document.body.appendChild(elFondo);
     elContenido = elFondo.querySelector("#mc-contenido");
-    elFondo.querySelector("#mc-cerrar").addEventListener("click", cerrar);
-    elFondo.addEventListener("click", function (e) {
-      if (e.target === elFondo) cerrar();
-    });
-    window.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && elFondo && !elFondo.classList.contains("oculto")) cerrar();
-    });
+    // Modal se encarga de ✕, clic fuera, Escape y la animación.
+    modalApi = Modal.registrar(elFondo, {});
     montado = true;
   }
 
   function abrir() {
     iniciar();
-    elFondo.classList.remove("oculto");
+    modalApi.abrir();
     render();
   }
 
   function cerrar() {
-    if (elFondo) elFondo.classList.add("oculto");
+    if (modalApi) modalApi.cerrar();
   }
 
   // ---------------- render según sesión ----------------

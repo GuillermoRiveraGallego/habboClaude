@@ -305,11 +305,18 @@ var UI = (function () {
     bReset.id = "btn-reiniciar";
     bReset.textContent = "🗑 Reiniciar partida (borra todo)";
     bReset.addEventListener("click", function () {
-      if (window.confirm("¿Seguro que quieres reiniciar la partida?\n" +
-          "Se borrarán salas, furnis, mascotas, créditos y avatar.")) {
-        if (window.Guardado) Guardado.reiniciar();
-        location.reload();
-      }
+      Dialogo.confirmar({
+        titulo: "🗑 Reiniciar partida",
+        mensaje: "¿Seguro que quieres reiniciar? Se borrarán salas, furnis, " +
+          "mascotas, créditos y avatar. No se puede deshacer.",
+        aceptar: "Sí, borrar todo",
+        cancelar: "Cancelar",
+        peligro: true,
+        alAceptar: function () {
+          if (window.Guardado) Guardado.reiniciar();
+          location.reload();
+        }
+      });
     });
     elPanelContenido.appendChild(bReset);
   }
@@ -552,13 +559,21 @@ var UI = (function () {
     if (!r.ok) { avisar(r.error, "error"); return; }
     var t = Mascotas.TIPOS[tipo];
     var sug = t.sugerencias[(Math.random() * t.sugerencias.length) | 0];
-    var nombre = window.prompt("¿Cómo se llamará tu " + t.nombre.toLowerCase() + "?", sug);
-    if (nombre === null) return;
-    nombre = (nombre || sug).trim().slice(0, 16) || sug;
-    var res = Mascotas.comprar(tipo, nombre);
-    if (!res.ok) { avisar(res.error, "error"); return; }
-    avisar("¡" + res.mascota.nombre + " se ha unido al jardín!", "ok");
-    pintarMascotas();
+    Dialogo.pedir({
+      titulo: t.emoji + " Nueva mascota",
+      mensaje: "¿Cómo se llamará tu " + t.nombre.toLowerCase() + "?",
+      valor: sug,
+      placeholder: sug,
+      maxlargo: 16,
+      aceptar: "Adoptar",
+      alAceptar: function (texto) {
+        var nombre = (texto || sug).trim().slice(0, 16) || sug;
+        var res = Mascotas.comprar(tipo, nombre);
+        if (!res.ok) { avisar(res.error, "error"); return; }
+        avisar("¡" + res.mascota.nombre + " se ha unido al jardín!", "ok");
+        pintarMascotas();
+      }
+    });
   }
 
   // panel flotante al pulsar una mascota en el jardín
@@ -1053,6 +1068,43 @@ var UI = (function () {
         if (window.Casino) Casino.abrir(juego);
       }
     });
+
+    // ---- reglas de cierre unificadas (fase POLISH) ----
+    // Los modales (ordenador, casino, cuenta, diálogos) ya las traen de
+    // Modal. Aquí damos a los paneles/overlays sin backdrop las MISMAS
+    // reglas: ✕ (ya cableado), Escape y clic/toque fuera.
+    if (window.Modal) {
+      // colocación activa: Escape la cancela antes que ningún panel
+      Modal.registrarPanel({
+        nivel: 3,
+        estaAbierto: function () { return Sala.hayFantasma(); },
+        cerrar: cancelarFantasma,
+        fueraCierra: false
+      });
+      // panel lateral: clic fuera cierra, salvo mientras se coloca un
+      // mueble (en escritorio el panel debe seguir abierto para colocar)
+      Modal.registrarPanel({
+        estaAbierto: function () { return panelAbierto !== null; },
+        cerrar: cerrarPanel,
+        esParte: function (n) { return elPanel.contains(n); },
+        esDisparador: function (n) {
+          return !!(n.closest && n.closest("#hud, #movil-top, #movil-drawer, #movil-drawer-fondo"));
+        },
+        puedeCerrarFuera: function () { return !Sala.hayFantasma(); }
+      });
+      // panel flotante de mascota
+      Modal.registrarPanel({
+        estaAbierto: function () { return !elPanelMascota.classList.contains("oculto"); },
+        cerrar: cerrarPanelMascota,
+        esParte: function (n) { return elPanelMascota.contains(n); }
+      });
+      // chat con NPCs
+      Modal.registrarPanel({
+        estaAbierto: function () { return chatNpc !== null; },
+        cerrar: cerrarChat,
+        esParte: function (n) { return elPanelChat.contains(n); }
+      });
+    }
 
     refrescarHud();
   }

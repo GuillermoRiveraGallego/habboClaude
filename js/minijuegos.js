@@ -15,7 +15,7 @@ var Minijuegos = (function () {
 
   var COOLDOWN_MS = 90 * 1000;
 
-  var elFondo = null, elContenido = null;
+  var elFondo = null, elContenido = null, modalApi = null;
   var temporizadores = [];
   var pantalla = "menu";
 
@@ -67,32 +67,26 @@ var Minijuegos = (function () {
   function iniciar() {
     elFondo = document.createElement("div");
     elFondo.id = "modal-fondo";
-    elFondo.className = "oculto";
+    elFondo.className = "modal-fondo oculto";
     elFondo.innerHTML =
-      '<div id="modal-ordenador">' +
+      '<div id="modal-ordenador" class="modal-caja">' +
         '<div class="mo-barra"><span>💻 HabbOS · El ordenador de casa</span>' +
-        '<button id="mo-cerrar">✕</button></div>' +
+        '<button id="mo-cerrar" class="modal-cerrar">✕</button></div>' +
         '<div id="mo-contenido"></div>' +
       '</div>';
-    document.getElementById("zona-canvas").appendChild(elFondo);
+    document.body.appendChild(elFondo);
     elContenido = document.getElementById("mo-contenido");
-    document.getElementById("mo-cerrar").addEventListener("click", cerrar);
-    elFondo.addEventListener("click", function (e) {
-      if (e.target === elFondo) cerrar();
-    });
-    window.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !elFondo.classList.contains("oculto")) cerrar();
-    });
+    // Modal se encarga de ✕, clic fuera, Escape y la animación.
+    modalApi = Modal.registrar(elFondo, { alCerrar: limpiar });
   }
 
   function abrir() {
-    elFondo.classList.remove("oculto");
+    modalApi.abrir();
     menu();
   }
 
   function cerrar() {
-    limpiar();
-    elFondo.classList.add("oculto");
+    if (modalApi) modalApi.cerrar();
   }
 
   function enfriamiento(id) {

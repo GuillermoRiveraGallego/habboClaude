@@ -497,15 +497,99 @@ button.mini.activo {
 
 /* ============ ORDENADOR (MINIJUEGOS) ============ */
 
-#modal-fondo {
-  position: absolute;
+/* ============ SISTEMA DE MODALES (fase POLISH) ============ */
+/* Backdrop común a TODOS los modales (ordenador, casino, cuenta,
+   diálogos). A pantalla completa y fijo → cubre también la barra
+   inferior en móvil y bloquea lo que hay detrás. Misma animación de
+   entrada/salida para todos. Los acentos de cada modal (colores del
+   borde, barra) siguen viviendo en sus reglas de #id de más abajo. */
+.modal-fondo {
+  position: fixed;
   inset: 0;
-  background: rgba(18, 20, 26, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9;
+  background: rgba(15, 17, 23, 0.66);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+.modal-fondo.visible { opacity: 1; }
+
+.modal-caja {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.modal-fondo.visible .modal-caja { opacity: 1; transform: none; }
+
+/* Barra y botón ✕ compartidos (los usan el diálogo y futuros modales;
+   los modales existentes conservan por ahora sus barras .mo-/.ca-/.mc-). */
+.modal-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2b2f3a;
+  padding: 10px 14px;
+  font-weight: bold;
+  color: #f2efe6;
+  border-bottom: 2px solid #464d5e;
+}
+.modal-cerrar {
+  background: #3b4254;
+  border: 2px solid #565f75;
+  color: #f2efe6;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* ---- Diálogos (confirmar / pedir texto) ---- */
+.modal-dialogo {
+  width: 380px;
+  max-width: 94%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  background: #20242e;
+  border: 3px solid #565f75;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.modal-dialogo .modal-titulo { color: #e4c25a; font-size: 15px; }
+.modal-dialogo .modal-contenido { padding: 16px; }
+.dlg-mensaje { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: #f2efe6; }
+.dlg-input {
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 9px 11px;
+  background: #171a21;
+  border: 2px solid #464d5e;
+  border-radius: 8px;
+  color: #f2efe6;
+  font-family: inherit;
+  font-size: 14px;
+}
+.dlg-input:focus { outline: none; border-color: #e4c25a; }
+.dlg-botones { display: flex; gap: 8px; justify-content: flex-end; }
+.dlg-btn {
+  padding: 9px 16px;
+  background: #3b4254;
+  color: #f2efe6;
+  border: 2px solid #565f75;
+  border-bottom-width: 4px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  min-height: 44px;
+}
+.dlg-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+.dlg-aceptar { background: #e4c25a; border-color: #b8963a; color: #343740; }
+.dlg-aceptar.peligro { background: #c95349; border-color: #8e3a33; color: #f7e9e6; }
 
 #modal-ordenador {
   width: 560px;
@@ -551,15 +635,7 @@ button.mini.activo {
 #mo-contenido::-webkit-scrollbar-thumb { background: #464d5e; border-radius: 4px; }
 
 /* ---- Modal de cuenta (Supabase Auth) ---- */
-#modal-fondo-cuenta {
-  position: absolute;
-  inset: 0;
-  background: rgba(18, 20, 26, 0.62);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 12;
-}
+/* El backdrop lo gobierna .modal-fondo; aquí solo el acento de la caja. */
 #modal-cuenta {
   width: 380px;
   max-width: 94%;
@@ -840,16 +916,7 @@ button.mini.activo {
 
 /* ============ CASINO ============ */
 
-#modal-fondo-casino {
-  position: absolute;
-  inset: 0;
-  background: rgba(12, 18, 12, 0.68);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9;
-}
-
+/* El backdrop del casino lo gobierna .modal-fondo; aquí solo la caja. */
 #modal-casino {
   width: 560px;
   max-width: 94%;

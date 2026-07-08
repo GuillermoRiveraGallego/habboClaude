@@ -98,6 +98,7 @@
 <script src="js/npcs.js"></script>
 <script src="js/tareas.js"></script>
 <script src="js/sala.js"></script>
+<script src="js/modal.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/movil.js"></script>
 <script src="js/minijuegos.js"></script>
@@ -743,6 +744,129 @@
 
     Movil.depurar.forzarMovil(false);
     cajaTexto(log14.join("\n"));
+  }
+
+  // ---- sistema de modales y diálogos (fase POLISH) ----
+
+  if (prueba === "dialogo_confirmar") {
+    Dialogo.confirmar({
+      titulo: "🗑 Reiniciar partida",
+      mensaje: "¿Seguro que quieres reiniciar? Se borrarán salas, furnis, " +
+        "mascotas, créditos y avatar. No se puede deshacer.",
+      aceptar: "Sí, borrar todo", cancelar: "Cancelar", peligro: true,
+      alAceptar: function () {}, alCancelar: function () {}
+    });
+  } else if (prueba === "dialogo_pedir") {
+    Dialogo.pedir({
+      titulo: "🐶 Nueva mascota", mensaje: "¿Cómo se llamará tu perro?",
+      valor: "Toby", maxlargo: 16, aceptar: "Adoptar", alAceptar: function () {}
+    });
+  } else if (prueba === "dialogo_flujo") {
+    var log15 = [];
+    function paso15(n, ok) { log15.push((ok ? "OK " : "FALLO ") + n); }
+    function esc15() { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); }
+
+    var res15 = null;
+    Dialogo.confirmar({ titulo: "Prueba", mensaje: "¿Confirmas?",
+      alAceptar: function () { res15 = "ok"; }, alCancelar: function () { res15 = "cancel"; } });
+    var fondoD = document.getElementById("modal-fondo-dialogo");
+    paso15("confirmar abre el diálogo", !!fondoD && !fondoD.classList.contains("oculto"));
+    paso15("tiene ✕, aceptar y cancelar",
+      !!fondoD.querySelector(".modal-cerrar") && !!document.getElementById("dlg-aceptar") &&
+      !!document.getElementById("dlg-cancelar"));
+    paso15("en confirmar el input está oculto",
+      document.getElementById("dlg-input").classList.contains("oculto"));
+    document.getElementById("dlg-aceptar").click();
+    paso15("aceptar dispara alAceptar", res15 === "ok");
+
+    res15 = null;
+    Dialogo.confirmar({ mensaje: "x", alAceptar: function () { res15 = "ok"; }, alCancelar: function () { res15 = "cancel"; } });
+    document.getElementById("dlg-cancelar").click();
+    paso15("cancelar dispara alCancelar", res15 === "cancel");
+
+    res15 = null;
+    Dialogo.confirmar({ mensaje: "x", alAceptar: function () { res15 = "ok"; }, alCancelar: function () { res15 = "cancel"; } });
+    esc15();
+    paso15("Escape cancela el diálogo", res15 === "cancel");
+
+    res15 = null;
+    Dialogo.confirmar({ mensaje: "x", alAceptar: function () { res15 = "ok"; }, alCancelar: function () { res15 = "cancel"; } });
+    fondoD.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    paso15("clic en el fondo cancela el diálogo", res15 === "cancel");
+
+    var valor15 = null;
+    Dialogo.pedir({ titulo: "Nombre", mensaje: "¿Nombre?", valor: "Toby", maxlargo: 16,
+      alAceptar: function (v) { valor15 = v; } });
+    var inp15 = document.getElementById("dlg-input");
+    paso15("pedir muestra el input", !inp15.classList.contains("oculto"));
+    paso15("pedir precarga el valor sugerido", inp15.value === "Toby");
+    inp15.value = "Rex";
+    document.getElementById("dlg-aceptar").click();
+    paso15("aceptar devuelve el texto escrito", valor15 === "Rex");
+
+    cajaTexto(log15.join("\n"));
+  } else if (prueba === "cierre_flujo") {
+    var log16 = [];
+    function paso16(n, ok) { log16.push((ok ? "OK " : "FALLO ") + n); }
+    function esc16() { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); }
+    function down16(el) { el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); }
+    var lienzo16 = document.getElementById("lienzo");
+    var panel16 = document.getElementById("panel");
+    var chat16 = document.getElementById("panel-chat");
+
+    // MODAL: Escape lo cierra
+    Minijuegos.abrir();
+    paso16("abrir el modal del ordenador", Modal.depurar.abiertos() === 1);
+    esc16();
+    paso16("Escape cierra el modal", Modal.depurar.abiertos() === 0);
+
+    // MODAL: clic en el backdrop lo cierra
+    Casino.abrir("dados");
+    var fC16 = document.getElementById("modal-fondo-casino");
+    paso16("abrir el casino", Modal.depurar.abiertos() === 1);
+    fC16.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    paso16("clic en el fondo cierra el modal", Modal.depurar.abiertos() === 0);
+
+    // PANEL LATERAL: Escape
+    UI.abrirPanel("catalogo");
+    paso16("abrir el catálogo", !panel16.classList.contains("oculto"));
+    esc16();
+    paso16("Escape cierra el panel lateral", panel16.classList.contains("oculto"));
+
+    // PANEL LATERAL: clic fuera (en el lienzo)
+    UI.abrirPanel("catalogo");
+    down16(lienzo16);
+    paso16("clic fuera cierra el panel lateral", panel16.classList.contains("oculto"));
+
+    // PANEL LATERAL: NO se cierra mientras se coloca (escritorio)
+    UI.abrirPanel("catalogo");
+    UI.empezarColocacion("sofa_rojo", "catalogo");
+    down16(lienzo16);
+    paso16("colocando, el clic en la sala no cierra el catálogo",
+      !panel16.classList.contains("oculto"));
+    esc16();
+    paso16("Escape cancela la colocación antes que el panel",
+      !Sala.hayFantasma() && !panel16.classList.contains("oculto"));
+    esc16();
+    paso16("otro Escape cierra ya el panel", panel16.classList.contains("oculto"));
+
+    // CHAT: Escape
+    UI.abrirChat(Npcs.porId("antonio"));
+    paso16("abrir el chat", !chat16.classList.contains("oculto"));
+    esc16();
+    paso16("Escape cierra el chat", chat16.classList.contains("oculto"));
+
+    // DIÁLOGO SOBRE PANEL: cerrarlo por el fondo no cierra el panel de debajo
+    UI.abrirPanel("salas");
+    Dialogo.confirmar({ mensaje: "x", alAceptar: function () {}, alCancelar: function () {} });
+    var fD16 = document.getElementById("modal-fondo-dialogo");
+    down16(fD16);
+    fD16.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    paso16("cerrar un diálogo por el fondo no cierra el panel de debajo",
+      !panel16.classList.contains("oculto"));
+    UI.cerrarPanel();
+
+    cajaTexto(log16.join("\n"));
   }
 
   // ---- NPCs y chat ----
