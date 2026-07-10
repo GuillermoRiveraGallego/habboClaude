@@ -135,6 +135,254 @@ var Nube = (function () {
     };
   }
 
+  // ---------------- lecturas públicas de salas (P3.7) ----------------
+  // Solo LECTURA de la tabla `salas` (RLS: select público). Sirven
+  // para visitar salas ajenas; no escriben nada. Defensivas: sin nube
+  // devuelven null / [] sin lanzar. NO tocan AlmacenNube ni el guardado.
+
+  // Lee una sala concreta de cualquier usuario por (user_id, indice).
+  function leerSala(ownerUserId, indice) {
+    if (!disponible() || !ownerUserId) return Promise.resolve(null);
+    return cliente.from("salas").select("*")
+      .eq("user_id", ownerUserId).eq("indice", indice).maybeSingle()
+      .then(function (r) { if (r.error) throw r.error; return r.data || null; })
+      .catch(function (e) { console.warn("Nube.leerSala:", e && e.message); return null; });
+  }
+
+  // Lista salas visitables (metadatos ligeros). `limite` opcional.
+  // Devuelve [] ante cualquier problema.
+  function listarSalas(limite) {
+    if (!disponible()) return Promise.resolve([]);
+    var q = cliente.from("salas")
+      .select("user_id, indice, nombre, tipo, desbloqueada")
+      .order("user_id", { ascending: true }).order("indice", { ascending: true });
+    if (limite) q = q.limit(limite);
+    return q.then(function (r) { if (r.error) throw r.error; return r.data || []; })
+      .catch(function (e) { console.warn("Nube.listarSalas:", e && e.message); return []; });
+  }
+
+  // ---------------- Realtime: canales (P3.2) ----------------
+  // Capa BASE de canales, único punto que toca supabase Realtime
+  // (nadie fuera de aquí debe llamar a cliente().channel()). Es
+  // infraestructura: NO conecta Presence al juego ni pinta remotos;
+  // solo deja listas las primitivas para P3.3+.
+  //
+  // Diseño defensivo, igual que el resto de Nube: si no hay config,
+  // no hay sesión o Realtime no está disponible, `abrirCanalSala`
+  // devuelve un CANAL NULO (inerte) y todas las operaciones sobre él
+  // son no-ops seguras. El juego nunca recibe una excepción por esto,
+  // así que quien llame no necesita comprobar nulos.
+  //
+  // Un "canal" aquí es un envoltorio: { salaId, nombre, bruto,
+  // disponible, suscrito, motivo }. `bruto` es el RealtimeChannel de
+  // supabase (o null en el canal nulo).
+  //
+  // Flujo previsto (lo compone P3.4, no esta tarea):
+  //   var c = Nube.abrirCanalSala(salaId);
+  //   Nube.alPresencia(c, { sync, join, leave });   // ANTES de suscribir
+  //   Nube.alBroadcast(c, "mover", fn);             // ANTES de suscribir
+  //   Nube.suscribir(c).then(function () { Nube.track(c, estado); });
+  //   ... Nube.emitir(c, "mover", payload) ...
+  //   Nube.untrack(c); Nube.cerrarCanal(c);
+
+  function canalNulo(salaId, motivoNulo) {
+    return {
+      salaId: salaId || null, nombre: null, bruto: null,
+      disponible: false, suscrito: false, motivo: motivoNulo || ""
+    };
+  }
+
+  function canalUtil(canal) {
+    return !!(canal && canal.disponible && canal.bruto);
+  }
+
+  function resultado(promesa) {
+    // Normaliza cualquier resultado (o promesa) del SDK a
+    // { ok, ... } y captura fallos para no propagarlos al juego.
+    return Promise.resolve(promesa).then(
+      function (r) { return { ok: true, resultado: r }; },
+      function (e) { return { ok: false, motivo: (e && e.message) || String(e) }; }
+    );
+  }
+
+  // Abre (sin suscribir) el canal de una sala: presence:sala:<salaId>.
+  // opciones.recibirPropios (bool) = recibir también los broadcast
+  // que emite este mismo cliente (útil para pruebas con una pestaña).
+  // opciones.clave = clave de presence (por defecto la asigna el SDK).
+  function abrirCanalSala(salaId, opciones) {
+    opciones = opciones || {};
+    if (!salaId) return canalNulo(salaId, "salaId vacío");
+    if (!disponible()) return canalNulo(salaId, "Supabase no disponible");
+    if (!cliente || typeof cliente.channel !== "function") {
+      return canalNulo(salaId, "Realtime no disponible en esta librería");
+    }
+    try {
+      var nombre = "presence:sala:" + salaId;
+      var cfg = { broadcast: { self: !!opciones.recibirPropios } };
+      if (opciones.clave) cfg.presence = { key: opciones.clave };
+      var bruto = cliente.channel(nombre, { config: cfg });
+      return {
+        salaId: salaId, nombre: nombre, bruto: bruto,
+        disponible: true, suscrito: false, motivo: ""
+      };
+    } catch (e) {
+      console.warn("Nube: no se pudo abrir el canal de sala", e && e.message);
+      return canalNulo(salaId, (e && e.message) || String(e));
+    }
+  }
+
+  // Registra manejadores de PRESENCE. handlers = { sync, join, leave }.
+  // sync recibe el estado de presencia completo; join/leave el payload
+  // del SDK ({ key, newPresences } / { key, leftPresences }).
+  // DEBE llamarse ANTES de suscribir. Devuelve el canal (encadenable).
+  function alPresencia(canal, handlers) {
+    if (!canalUtil(canal)) return canal;
+    handlers = handlers || {};
+    try {
+      var ch = canal.bruto;
+      if (handlers.sync) {
+        ch.on("presence", { event: "sync" }, function () {
+          handlers.sync(presentes(canal));
+        });
+      }
+      if (handlers.join) {
+        ch.on("presence", { event: "join" }, function (p) { handlers.join(p); });
+      }
+      if (handlers.leave) {
+        ch.on("presence", { event: "leave" }, function (p) { handlers.leave(p); });
+      }
+    } catch (e) {
+      console.warn("Nube: alPresencia falló", e && e.message);
+    }
+    return canal;
+  }
+
+  // Registra un manejador de BROADCAST para un evento concreto.
+  // handler recibe (payload, mensajeCompleto). DEBE llamarse ANTES de
+  // suscribir. Devuelve el canal (encadenable).
+  function alBroadcast(canal, evento, handler) {
+    if (!canalUtil(canal) || !handler) return canal;
+    try {
+      canal.bruto.on("broadcast", { event: evento }, function (msg) {
+        handler(msg && msg.payload, msg);
+      });
+    } catch (e) {
+      console.warn("Nube: alBroadcast falló", e && e.message);
+    }
+    return canal;
+  }
+
+  // Suscribe el canal. alEstado(estadoCanal) (opcional) recibe cada
+  // cambio de estado del SDK. Devuelve una Promesa que resuelve con el
+  // estado terminal ("SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" |
+  // "CLOSED" | "nulo" | "error"). Nunca rechaza.
+  function suscribir(canal, alEstado) {
+    if (!canalUtil(canal)) {
+      if (alEstado) { try { alEstado("nulo"); } catch (e) {} }
+      return Promise.resolve("nulo");
+    }
+    return new Promise(function (resolve) {
+      var resuelto = false;
+      function fin(estadoCanal) {
+        if (resuelto) return;
+        resuelto = true;
+        canal.suscrito = (estadoCanal === "SUBSCRIBED");
+        resolve(estadoCanal);
+      }
+      try {
+        canal.bruto.subscribe(function (estadoCanal) {
+          if (alEstado) { try { alEstado(estadoCanal); } catch (e) {} }
+          if (estadoCanal === "SUBSCRIBED" || estadoCanal === "CHANNEL_ERROR" ||
+              estadoCanal === "TIMED_OUT" || estadoCanal === "CLOSED") {
+            fin(estadoCanal);
+          }
+        });
+      } catch (e) {
+        console.warn("Nube: suscribir falló", e && e.message);
+        fin("error");
+      }
+    });
+  }
+
+  // Publica el estado de presencia de este cliente en el canal
+  // (aparece en el roster de los demás). Devuelve Promesa { ok, ... }.
+  function track(canal, estado) {
+    if (!canalUtil(canal) || !canal.bruto.track) {
+      return Promise.resolve({ ok: false, motivo: "canal no disponible" });
+    }
+    try {
+      return resultado(canal.bruto.track(estado || {}));
+    } catch (e) {
+      return Promise.resolve({ ok: false, motivo: (e && e.message) || String(e) });
+    }
+  }
+
+  // Retira el estado de presencia de este cliente. Promesa { ok, ... }.
+  function untrack(canal) {
+    if (!canalUtil(canal) || !canal.bruto.untrack) {
+      return Promise.resolve({ ok: false, motivo: "canal no disponible" });
+    }
+    try {
+      return resultado(canal.bruto.untrack());
+    } catch (e) {
+      return Promise.resolve({ ok: false, motivo: (e && e.message) || String(e) });
+    }
+  }
+
+  // Emite un evento de BROADCAST (efímero, no confiable). Promesa
+  // { ok, ... }. El payload solo debe llevar datos "de pintar" (ver
+  // docs/presence-arquitectura.md §6): nunca créditos ni progreso.
+  function emitir(canal, evento, payload) {
+    if (!canalUtil(canal) || !canal.bruto.send) {
+      return Promise.resolve({ ok: false, motivo: "canal no disponible" });
+    }
+    try {
+      return resultado(canal.bruto.send({
+        type: "broadcast", event: evento, payload: payload || {}
+      }));
+    } catch (e) {
+      return Promise.resolve({ ok: false, motivo: (e && e.message) || String(e) });
+    }
+  }
+
+  // Lee el estado de presencia actual del canal (roster). Devuelve un
+  // objeto (posiblemente vacío); nunca lanza.
+  function presentes(canal) {
+    if (!canalUtil(canal) || !canal.bruto.presenceState) return {};
+    try { return canal.bruto.presenceState() || {}; }
+    catch (e) { return {}; }
+  }
+
+  // Cierra y elimina el canal. Idempotente y seguro sobre canal nulo.
+  // Promesa { ok, ... }.
+  function cerrarCanal(canal) {
+    if (!canal || !canal.bruto) return Promise.resolve({ ok: true });
+    try {
+      canal.disponible = false;
+      canal.suscrito = false;
+      if (cliente && cliente.removeChannel) {
+        return resultado(cliente.removeChannel(canal.bruto));
+      }
+      if (canal.bruto.unsubscribe) {
+        return resultado(canal.bruto.unsubscribe());
+      }
+    } catch (e) {
+      console.warn("Nube: cerrarCanal falló", e && e.message);
+    }
+    return Promise.resolve({ ok: true });
+  }
+
+  // Punto de inyección para pruebas aisladas (index.html?prueba=
+  // presence_flujo): enchufa un cliente falso con .channel() para
+  // ejercitar la capa de canales sin red. Fuera de pruebas no se usa.
+  var depurar = {
+    inyectarCliente: function (fake) {
+      cliente = fake || null;
+      estado = fake ? "listo" : "sin_iniciar";
+      motivo = "";
+    }
+  };
+
   return {
     inicializar: inicializar,
     disponible: disponible,
@@ -144,6 +392,20 @@ var Nube = (function () {
     entrar: entrar,
     salir: salir,
     usuario: usuario,
-    alCambiarSesion: alCambiarSesion
+    alCambiarSesion: alCambiarSesion,
+    // ---- lecturas públicas de salas (P3.7) ----
+    leerSala: leerSala,
+    listarSalas: listarSalas,
+    // ---- Realtime: canales (P3.2) ----
+    abrirCanalSala: abrirCanalSala,
+    suscribir: suscribir,
+    alPresencia: alPresencia,
+    alBroadcast: alBroadcast,
+    track: track,
+    untrack: untrack,
+    emitir: emitir,
+    presentes: presentes,
+    cerrarCanal: cerrarCanal,
+    depurar: depurar
   };
 })();

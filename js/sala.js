@@ -13,6 +13,18 @@ var Sala = (function () {
   var ALTO_SETO = 0.55;  // "pared" del jardín
   var VEL_AVATAR = 2.8;  // casillas por segundo
 
+  // Índice de la sala CARGADA (el del dueño si estoy de visita; el mío
+  // si no). Los NPCs y la rejilla de bloqueo son datos por índice, así
+  // que la sala visitada muestra sus NPC correctos (P3.7).
+  function indiceEfectivo() {
+    if (window.Visita && Visita.soloLectura()) return Visita.indice();
+    return Juego.indiceSala();
+  }
+
+  function soloLecturaActual() {
+    return !!(window.Visita && Visita.soloLectura());
+  }
+
   function esJardin(s) { return !!(s && s.tipo === "jardin"); }
 
   function esBaile(s) { return !!(s && s.tipo === "baile"); }
@@ -53,6 +65,9 @@ var Sala = (function () {
   var fantasma = null;         // {id, rot, origen, uid}
   var seleccion = null;        // instancia seleccionada en modo decorar
   var cbs = {};                // callbacks de la UI
+  var cbCargar = null;         // aviso de "sala cargada" (lo usa Presencia)
+  var fraseLocal = null;       // burbuja de chat sobre el avatar local
+  var tFraseLocal = 0;         // tiempo restante de la burbuja (s)
 
   // ---------------- utilidades ----------------
 
@@ -103,7 +118,7 @@ var Sala = (function () {
     }
     // los NPCs ocupan su casilla (no se puede caminar a través)
     if (window.Npcs) {
-      Npcs.enSala(Juego.indiceSala()).forEach(function (n) {
+      Npcs.enSala(indiceEfectivo()).forEach(function (n) {
         if (dentro(n.x, n.y)) g[n.y][n.x] = true;
       });
     }
@@ -269,7 +284,7 @@ var Sala = (function () {
     // mueven si el jardín es la sala cargada
     if (window.Mascotas && sala) {
       var ctxJardin = null;
-      if (esJardin(sala)) {
+      if (esJardin(sala) && !soloLecturaActual()) {
         var bloqJ = rejillaBloqueo();
         ctxJardin = {
           ancho: sala.ancho,
@@ -292,6 +307,11 @@ var Sala = (function () {
         }
       });
     }
+    // jugadores remotos (P3.3): interpola su posición hacia el
+    // objetivo (mock ahora; Presence en P3.4+). Queda tras el guardado
+    // `congelado`, así que las pruebas pueden avanzar el tick a mano.
+    if (window.Remotos) Remotos.tick(dt);
+    if (tFraseLocal > 0) tFraseLocal -= dt;   // burbuja de chat local
     if (!camino.length) {
       if (avatar.pose === "andando") { avatar.pose = "parado"; avatar.fase = 0; }
       // habilidad desbloqueable: bailar quieto sobre la pista
@@ -360,7 +380,7 @@ var Sala = (function () {
     }
     // ni encima de un NPC
     if (def.capa === "furni" && window.Npcs) {
-      var ns = Npcs.enSala(Juego.indiceSala());
+      var ns = Npcs.enSala(indiceEfectivo());
       for (var j = 0; j < ns.length; j++) {
         if (ns[j].x >= x && ns[j].x < x + p[0] && ns[j].y >= y && ns[j].y < y + p[1]) return false;
       }
@@ -384,7 +404,7 @@ var Sala = (function () {
     if (!dentro(tx, ty)) return;
     // NPCs: click → acercarse y abrir el chat
     if (window.Npcs) {
-      var npc = Npcs.npcEn(tx, ty, Juego.indiceSala());
+      var npc = Npcs.npcEn(tx, ty, indiceEfectivo());
       if (npc) {
         if (cbs.alNpc) {
           acercarseA(tx, ty, function () { cbs.alNpc(npc); });
@@ -660,8 +680,8 @@ var Sala = (function () {
       ca.dibuja = function () { Avatar.dibujar(ctx, avatar); };
       cajas.push(ca);
     }
-    // mascotas sueltas del jardín (perros y gatos)
-    if (jardin && window.Mascotas) {
+    // mascotas sueltas del jardín (perros y gatos) — no en jardín ajeno
+    if (jardin && window.Mascotas && !soloLecturaActual()) {
       Juego.mascotas().forEach(function (m) {
         if (!Mascotas.esLibre(m.tipo)) return;
         var cm = Mascotas.cajaSuelto(m);
@@ -672,14 +692,39 @@ var Sala = (function () {
     }
     // NPCs de la sala
     if (window.Npcs) {
-      Npcs.enSala(Juego.indiceSala()).forEach(function (npc) {
+      Npcs.enSala(indiceEfectivo()).forEach(function (npc) {
         var cn = Npcs.caja(npc);
         cn.dibuja = function () { Npcs.dibujar(ctx, npc, ahoraSeg); };
         cajas.push(cn);
       });
     }
+    // jugadores remotos (P3.3): una caja más, en el mismo orden
+    // isométrico que furnis, avatar, mascotas y NPCs
+    if (window.Remotos) {
+      Remotos.lista().forEach(function (actor) {
+        var cr = Remotos.caja(actor);
+        cr.dibuja = function () { Remotos.dibujar(ctx, actor, ahoraSeg); };
+        cajas.push(cr);
+      });
+    }
     var ordenadas = Iso.ordenarCajas(cajas);
     for (var j = 0; j < ordenadas.length; j++) ordenadas[j].dibuja();
+
+    // burbuja de chat sobre el avatar local (misma técnica que NPCs/
+    // Remotos). Se dibuja con fillText: es texto plano, sin HTML.
+    if (fraseLocal && tFraseLocal > 0) {
+      var pbl = Iso.proyectar(avatar.x, avatar.y, (avatar.gz || 0) + 1.75 + 0.4);
+      ctx.font = "11px 'Trebuchet MS', 'Segoe UI', sans-serif";
+      var wbl = ctx.measureText(fraseLocal).width + 14;
+      ctx.globalAlpha = Math.min(1, tFraseLocal / 0.4);
+      ctx.fillStyle = "rgba(242, 239, 230, 0.94)";
+      ctx.fillRect(pbl.x - wbl / 2, pbl.y - 17, wbl, 17);
+      ctx.fillStyle = "#343740";
+      ctx.textAlign = "center";
+      ctx.fillText(fraseLocal, pbl.x, pbl.y - 5);
+      ctx.textAlign = "left";
+      ctx.globalAlpha = 1;
+    }
 
     // halos de luz (lámparas, pantallas y fuego)
     if (halos.length) {
@@ -925,6 +970,8 @@ var Sala = (function () {
     alLlegar = null;
     fantasma = null;
     seleccion = null;
+    fraseLocal = null;
+    tFraseLocal = 0;
     avatar.sentadoEn = null;
     avatar.casilla = null;
     avatar.gz = 0;
@@ -944,6 +991,10 @@ var Sala = (function () {
         }
     avatar.x = (mejor ? mejor.x : 0) + 0.5;
     avatar.y = (mejor ? mejor.y : 0) + 0.5;
+
+    // aviso de "sala cargada" (entrada inicial y cada cambio de sala):
+    // lo usa Presencia para abrir/cerrar el canal Realtime de la sala.
+    if (cbCargar) cbCargar();
   }
 
   function modo(m) {
@@ -1115,6 +1166,14 @@ var Sala = (function () {
     },
     validar: validar,
     validarPared: validarPared,
+    // estado del avatar local (lo publica Presencia por Realtime)
+    estadoAvatar: function () {
+      return { x: avatar.x, y: avatar.y, dir: avatar.dir, pose: avatar.pose };
+    },
+    // registra un aviso de "sala cargada" (entrada/cambio de sala)
+    alCargar: function (fn) { cbCargar = fn || null; },
+    // muestra una burbuja de chat sobre el avatar local (texto plano)
+    decir: function (texto) { fraseLocal = texto; tFraseLocal = 3.2; },
     levantarSiSentadoEn: levantarSiSentadoEn,
     puntoDe: puntoDe,
     puntoPantalla: puntoPantalla,

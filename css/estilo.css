@@ -1322,6 +1322,47 @@ button.mini.activo {
   flex-shrink: 0;
 }
 
+/* barra de chat entre jugadores presentes (P3.6): abajo centrada,
+   sobre el lienzo. Oculta por defecto (.oculto); el arranque la
+   muestra solo con sesión de nube. */
+#barra-chat {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  width: min(420px, calc(100% - 24px));
+  background: rgba(43, 47, 58, 0.92);
+  border: 2px solid #565f75;
+  border-radius: 10px;
+  padding: 7px 8px;
+  z-index: 15;
+}
+#barra-chat.oculto { display: none; }
+#chat-mundo-input {
+  flex: 1;
+  min-width: 0;
+  background: #171b23;
+  border: 2px solid #565f75;
+  border-radius: 8px;
+  color: #f2efe6;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 9px;
+}
+#chat-mundo-enviar {
+  background: #e4c25a;
+  border: 2px solid #b8963a;
+  color: #343740;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+/* en móvil, por encima de la barra de pestañas */
+body.movil #barra-chat { bottom: calc(var(--alto-hud, 56px) + 10px); }
+
 /* ============ TAREAS DIARIAS ============ */
 
 .tarea {

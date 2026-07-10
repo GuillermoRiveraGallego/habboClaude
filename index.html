@@ -60,6 +60,14 @@
     </div>
 
     <div id="avisos"></div>
+
+    <!-- chat entre jugadores presentes (P3.6). Oculto salvo con sesión;
+         lo cablea el arranque a Presencia.enviarChat. Efímero, sin BD. -->
+    <div id="barra-chat" class="oculto">
+      <input id="chat-mundo-input" type="text" maxlength="120"
+             placeholder="Habla con los presentes…" autocomplete="off">
+      <button id="chat-mundo-enviar" type="button">➤</button>
+    </div>
   </div>
 
   <div id="hud">
@@ -97,6 +105,7 @@
 <script src="js/mascotas.js"></script>
 <script src="js/npcs.js"></script>
 <script src="js/tareas.js"></script>
+<script src="js/remotos.js"></script>
 <script src="js/sala.js"></script>
 <script src="js/modal.js"></script>
 <script src="js/ui.js"></script>
@@ -116,6 +125,10 @@
 <script src="js/services/almacen-nube.js"></script>
 <!-- UI de cuenta: modal de login/registro; cableada al HUD en el arranque. -->
 <script src="js/cuenta.js"></script>
+<!-- Presencia: orquestador de Presence (canal Realtime + actores remotos). -->
+<script src="js/presencia.js"></script>
+<!-- Visita: modo visitante de salas ajenas (solo lectura). -->
+<script src="js/visita.js"></script>
 <script>
 (function () {
   var prueba = new URLSearchParams(location.search).get("prueba");
@@ -131,6 +144,13 @@
   // modal e indica el estado (Invitado / email). Tras un login o
   // logout se RECARGA la página para que el arranque elija el backend
   // correcto (no se intercambia el backend en caliente).
+  //
+  // IMPORTANTE (P3.5): recargar SOLO cuando cambia de verdad entre
+  // "con sesión" y "sin sesión" (login/logout real → cambia backend),
+  // NO en cada evento SIGNED_IN. supabase-js emite SIGNED_IN también
+  // al sincronizar la sesión entre pestañas y al refrescar el token;
+  // recargar en esos casos metía a una segunda pestaña en un bucle de
+  // recargas y rompía Presence multi-pestaña.
   (function () {
     var btn = document.getElementById("btn-cuenta");
     if (!btn) return;
@@ -145,11 +165,16 @@
       if (window.Cuenta) Cuenta.abrir();
     });
     if (window.Nube && Nube.disponible()) {
-      var primera = true;
-      Nube.alCambiarSesion(function (sesion, evento) {
+      var teniaSesion = null;   // null hasta conocer el estado inicial
+      Nube.alCambiarSesion(function (sesion) {
         refrescar(sesion);
-        if (primera) { primera = false; return; }   // ignora la sesión inicial
-        if (evento === "SIGNED_IN" || evento === "SIGNED_OUT") location.reload();
+        var haySesion = !!(sesion && sesion.user);
+        if (teniaSesion === null) { teniaSesion = haySesion; return; }  // estado inicial
+        if (haySesion !== teniaSesion) {   // login o logout real → cambia el backend
+          teniaSesion = haySesion;
+          location.reload();
+        }
+        // mismo estado (refresco de token, sync entre pestañas): no recargar
       });
     } else {
       // Supabase no configurado: se juega como invitado.
@@ -254,6 +279,26 @@
       Guardado.guardar(); // primera foto de la partida
       if (guardada) UI.avisar("Partida cargada — bienvenido de nuevo", "ok");
       if (invitado) mostrarAvisoInvitado();
+      // Presence: solo con sesión de nube (degrada solo si no la hay).
+      // No toca el guardado; abre el canal de la sala y ve remotos.
+      if (window.Presencia && window.Nube && Nube.disponible()) {
+        Presencia.iniciar();
+        // barra de chat entre jugadores (P3.6): visible con nube lista;
+        // envía por Presencia.enviarChat (burbuja local + Broadcast).
+        var barraChat = document.getElementById("barra-chat");
+        var chatInput = document.getElementById("chat-mundo-input");
+        if (barraChat && chatInput) {
+          barraChat.classList.remove("oculto");
+          function enviarMundo() {
+            if (Presencia.enviarChat(chatInput.value)) chatInput.value = "";
+            chatInput.focus();
+          }
+          document.getElementById("chat-mundo-enviar").addEventListener("click", enviarMundo);
+          chatInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") { e.preventDefault(); enviarMundo(); }
+          });
+        }
+      }
     }
 
   // ---- modos de prueba para capturas: index.html?prueba=... ----
@@ -1268,6 +1313,429 @@
       paso12("sin nube: avisa de que no está configurado",
         contCuenta().textContent.indexOf("no está configurado") !== -1);
       cajaTexto(log12.join("\n"));
+    });
+  }
+
+  // ---- prueba aislada de la capa base de Realtime (P3.2) ----
+  // Ejercita Nube.abrirCanalSala/suscribir/track/emitir/... contra un
+  // CLIENTE FALSO inyectado (Nube.depurar.inyectarCliente): sin red,
+  // sin Presence real en el juego y sin tocar el estado. Comprueba
+  // también la degradación cuando Realtime no está disponible.
+  if (prueba === "presence_flujo") {
+    var log14 = [];
+    function paso14(nombre, ok) { log14.push((ok ? "OK " : "FALLO ") + nombre); }
+    function tick14() { return new Promise(function (res) { setTimeout(res, 20); }); }
+
+    // --- cliente/canal falsos (simulan supabase Realtime) ---
+    function canalFalso(nombre, cfg) {
+      var manejadores = {};        // "presence:sync", "broadcast:mover", ...
+      var roster = {};
+      var self = !!(cfg && cfg.config && cfg.config.broadcast && cfg.config.broadcast.self);
+      var ch = {
+        removido: false,
+        on: function (tipo, opt, cb) { manejadores[tipo + ":" + opt.event] = cb; return ch; },
+        subscribe: function (cb) { setTimeout(function () { cb("SUBSCRIBED"); }, 0); return ch; },
+        track: function (estado) {
+          roster = { self: [estado] };
+          if (manejadores["presence:sync"]) setTimeout(manejadores["presence:sync"], 0);
+          return Promise.resolve("ok");
+        },
+        untrack: function () { roster = {}; return Promise.resolve("ok"); },
+        send: function (msg) {
+          if (self && msg.type === "broadcast" && manejadores["broadcast:" + msg.event]) {
+            setTimeout(function () { manejadores["broadcast:" + msg.event]({ payload: msg.payload }); }, 0);
+          }
+          return Promise.resolve("ok");
+        },
+        presenceState: function () { return roster; },
+        unsubscribe: function () { return Promise.resolve("ok"); }
+      };
+      return ch;
+    }
+    var canalesCreados = [];
+    var clienteFalso = {
+      channel: function (nombre, cfg) { var c = canalFalso(nombre, cfg); canalesCreados.push(c); return c; },
+      removeChannel: function (ch) { ch.removido = true; return Promise.resolve("ok"); }
+    };
+
+    // 1) DEGRADACIÓN: sin cliente, todo es seguro y no lanza
+    Nube.depurar.inyectarCliente(null);
+    var cNulo = Nube.abrirCanalSala("uid-x:0");
+    paso14("sin Realtime: canal nulo (no disponible)", cNulo && cNulo.disponible === false);
+
+    var sync14 = 0, recibido14 = null;
+
+    Nube.track(cNulo, { x: 1 }).then(function (r) {
+      paso14("sin Realtime: track degrada (ok:false, no lanza)", r && r.ok === false);
+      paso14("sin Realtime: presentes devuelve objeto vacío",
+        Object.keys(Nube.presentes(cNulo)).length === 0);
+      return Nube.emitir(cNulo, "mover", { x: 1 });
+    }).then(function (r) {
+      paso14("sin Realtime: emitir degrada (ok:false)", r && r.ok === false);
+
+      // 2) CON cliente falso: abrir canal de sala
+      Nube.depurar.inyectarCliente(clienteFalso);
+      var c = Nube.abrirCanalSala("uid-x:0", { recibirPropios: true });
+      paso14("abre canal disponible", c && c.disponible === true);
+      paso14("nombre de canal por sala correcto", c && c.nombre === "presence:sala:uid-x:0");
+
+      // 3) registrar manejadores ANTES de suscribir
+      Nube.alPresencia(c, { sync: function () { sync14++; } });
+      Nube.alBroadcast(c, "mover", function (payload) { recibido14 = payload; });
+
+      // 4) suscribir
+      return Nube.suscribir(c).then(function (estadoCanal) {
+        paso14("suscribir resuelve SUBSCRIBED", estadoCanal === "SUBSCRIBED");
+        paso14("canal marca suscrito", c.suscrito === true);
+        return Nube.track(c, { x: 4, y: 3, dir: 1, pose: "parado" });
+      }).then(function (r) {
+        paso14("track ok", r && r.ok === true);
+        return tick14().then(function () {
+          paso14("track dispara sync de presencia", sync14 >= 1);
+          paso14("presentes refleja el estado publicado",
+            Nube.presentes(c).self && Nube.presentes(c).self[0].x === 4);
+          return Nube.emitir(c, "mover", { x: 9 });
+        });
+      }).then(function (r) {
+        paso14("emitir ok", r && r.ok === true);
+        return tick14();
+      }).then(function () {
+        paso14("broadcast propio recibido con payload", recibido14 && recibido14.x === 9);
+        return Nube.untrack(c);
+      }).then(function (r) {
+        paso14("untrack ok", r && r.ok === true);
+        return Nube.cerrarCanal(c);
+      }).then(function (r) {
+        paso14("cerrarCanal ok", r && r.ok === true);
+        paso14("cerrarCanal elimina el canal del cliente",
+          canalesCreados[canalesCreados.length - 1].removido === true);
+        Nube.depurar.inyectarCliente(null);  // restaurar
+        cajaTexto(log14.join("\n"));
+      });
+    });
+  }
+
+  // ---- jugadores remotos mockeados (P3.3) ----
+  // Sin red: se alimentan con datos locales, como llegarían de
+  // Presence. remotos_mock pinta 2-3 falsos en la sala actual;
+  // remotos_flujo valida alta/update/baja/limpieza e interpolación.
+  var ASP_A = { peinado: "coleta",  pelo: "rojo",          piel: "crema", camiseta: "morado",   pantalon: "negro",       zapatos: "rojo" };
+  var ASP_B = { peinado: "tupe",    pelo: "madera_oscura", piel: "piel",  camiseta: "turquesa", pantalon: "azul",        zapatos: "blanco" };
+  var ASP_C = { peinado: "melena",  pelo: "negro",         piel: "piel",  camiseta: "amarillo", pantalon: "gris_oscuro", zapatos: "negro" };
+
+  if (prueba === "remotos_mock") {
+    Remotos.limpiar();
+    Remotos.alta({ id: "r1", nombre: "Ana",   aspecto: ASP_A, x: 2.5, y: 5.5, dir: 0, pose: "parado" });
+    Remotos.alta({ id: "r2", nombre: "Bruno", aspecto: ASP_B, x: 7.5, y: 3.5, dir: 2, pose: "bailando" });
+    Remotos.alta({ id: "r3", nombre: "Cleo",  aspecto: ASP_C, x: 5.5, y: 7.5, dir: 1, pose: "parado" });
+    Remotos.decir("r3", "¡Hola! Estoy de visita 👋");
+  }
+
+  if (prueba === "remotos_flujo") {
+    var log15 = [];
+    function paso15(n, ok) { log15.push((ok ? "OK " : "FALLO ") + n); }
+    // congelar el bucle para que solo avancen los ticks manuales
+    Sala.depurar.avatar({});
+
+    Remotos.limpiar();
+    paso15("empieza vacío", Remotos.cuenta() === 0);
+
+    Remotos.alta({ id: "a", nombre: "Ana",   aspecto: ASP_A, x: 2.5, y: 2.5, dir: 0, pose: "parado" });
+    Remotos.alta({ id: "b", nombre: "Bruno", aspecto: ASP_B, x: 6.5, y: 6.5, dir: 1, pose: "bailando" });
+    paso15("alta añade 2 actores", Remotos.cuenta() === 2);
+    var a = Remotos.obtener("a");
+    paso15("en la aparición no interpola (px = x)", a.px === a.x && a.py === a.y);
+
+    // update: el objetivo cambia pero px/py NO salta
+    Remotos.actualizar("a", { x: 5.5, y: 2.5, pose: "andando" });
+    paso15("update mueve el objetivo sin saltar px", a.x === 5.5 && a.px === 2.5);
+    paso15("update de actor inexistente devuelve false", Remotos.actualizar("zzz", { x: 1 }) === false);
+
+    // interpolación: tras 0.2 s a VEL 2.8 → ~0.56 casillas recorridas
+    Remotos.tick(0.1); Remotos.tick(0.1);
+    paso15("tras ticks px avanza hacia el objetivo", a.px > 2.5 && a.px < 5.5);
+    paso15("mientras se mueve, pose 'andando'", a.poseVista === "andando");
+    paso15("dirección derivada del movimiento (+x)", a.dirVista === 0);
+
+    // dejar que llegue del todo
+    for (var i = 0; i < 40; i++) Remotos.tick(0.1);
+    paso15("al llegar, px ≈ objetivo", Math.abs(a.px - 5.5) < 0.05);
+    Remotos.actualizar("a", { pose: "parado" });
+    Remotos.tick(0.05);
+    paso15("parado en el objetivo, pose 'parado'", a.poseVista === "parado");
+
+    // salto grande: reaparición sin planeo (snap)
+    Remotos.actualizar("b", { x: 0.5, y: 0.5 });  // dist √72 ≈ 8.5 > 3
+    Remotos.tick(0.1);
+    var b = Remotos.obtener("b");
+    paso15("salto grande hace snap (sin planeo)", b.px === 0.5 && b.py === 0.5);
+
+    // baja y limpieza
+    paso15("baja elimina el actor", Remotos.baja("a") && Remotos.obtener("a") === null);
+    paso15("queda 1 actor", Remotos.cuenta() === 1);
+    Remotos.limpiar();
+    paso15("limpiar deja la lista vacía", Remotos.cuenta() === 0);
+
+    cajaTexto(log15.join("\n"));
+  }
+
+  // ---- orquestador Presence local (P3.4) ----
+  // Nube (capa de canal) se mockea para no tocar la red: un roster en
+  // memoria simula otras pestañas. Valida entrar/salir, que dos tabs
+  // se vean, que uno NO se pinte a sí mismo, y las degradaciones.
+  if (prueba === "presence_local_flujo") {
+    var log16 = [];
+    function paso16(n, ok) { log16.push((ok ? "OK " : "FALLO ") + n); }
+
+    var canalMock = null;
+    var estadoSuscripcion = "SUBSCRIBED";  // se fuerza a error más abajo
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve({ id: "user-1", email: "ana@ejemplo.com" }); };
+    Nube.abrirCanalSala = function (salaId, opts) {
+      canalMock = { salaId: salaId, clave: opts && opts.clave, disponible: true, _handlers: null, _roster: {} };
+      return canalMock;
+    };
+    Nube.alPresencia = function (c, h) { if (c) c._handlers = h; return c; };
+    Nube.alBroadcast = function (c, evento, h) { if (c) { c._bc = c._bc || {}; c._bc[evento] = h; } return c; };
+    Nube.suscribir = function () { return Promise.resolve(estadoSuscripcion); };
+    Nube.emitir = function () { return Promise.resolve({ ok: true }); };
+    Nube.track = function (c, estado) { if (c) c._roster[estado.clientId] = [estado]; return Promise.resolve({ ok: true }); };
+    Nube.untrack = function () { return Promise.resolve({ ok: true }); };
+    Nube.presentes = function (c) { return c ? c._roster : {}; };
+    Nube.cerrarCanal = function () { return Promise.resolve({ ok: true }); };
+
+    Remotos.limpiar();
+    var yo = Presencia.clientId();
+
+    Presencia.entrar().then(function (ok) {
+      paso16("entra con sesión (true)", ok === true);
+      paso16("activo tras entrar", Presencia.activo() === true);
+      paso16("salaId = userId:indice", Presencia.estado().salaId === "user-1:0");
+      paso16("clave de canal = mi clientId", canalMock.clave === yo);
+      paso16("me trackeo en el roster", !!canalMock._roster[yo]);
+      paso16("NO me pinto a mí mismo", Remotos.obtener(yo) === null && Remotos.cuenta() === 0);
+
+      // otra pestaña: mismo userId, distinto clientId → sí se pinta
+      canalMock._roster["otra-pestana"] = [{
+        clientId: "otra-pestana", userId: "user-1", nombre: "Ana2",
+        aspecto: ASP_B, x: 3.5, y: 3.5, dir: 1, pose: "parado"
+      }];
+      canalMock._handlers.sync();
+      paso16("otra pestaña (mismo userId) aparece como remoto", !!Remotos.obtener("otra-pestana"));
+      paso16("sigo sin pintarme", Remotos.obtener(yo) === null);
+      paso16("hay exactamente 1 remoto", Remotos.cuenta() === 1);
+
+      // esa pestaña se mueve por BROADCAST "mov" → se actualiza el remoto
+      canalMock._bc.mov({ clientId: "otra-pestana", x: 7.5, y: 2.5, dir: 2, pose: "andando" });
+      paso16("broadcast 'mov' actualiza el remoto", Remotos.obtener("otra-pestana").x === 7.5);
+      // el broadcast propio se ignora (no me muevo a mí mismo)
+      canalMock._bc.mov({ clientId: yo, x: 1.5, y: 1.5, dir: 0, pose: "andando" });
+      paso16("broadcast propio se ignora", Remotos.obtener(yo) === null);
+
+      // esa pestaña se va → desaparece
+      delete canalMock._roster["otra-pestana"];
+      canalMock._handlers.leave();
+      paso16("la otra pestaña se va y desaparece", Remotos.cuenta() === 0);
+
+      return Presencia.salir();
+    }).then(function () {
+      paso16("salir desactiva Presencia", Presencia.activo() === false);
+      paso16("salir limpia los remotos", Remotos.cuenta() === 0);
+
+      Nube.usuario = function () { return Promise.resolve(null); };
+      return Presencia.entrar();
+    }).then(function (ok) {
+      paso16("sin sesión no entra (false)", ok === false);
+      paso16("sin sesión no queda activo", Presencia.activo() === false);
+
+      Nube.usuario = function () { return Promise.resolve({ id: "user-1", email: "ana@ejemplo.com" }); };
+      estadoSuscripcion = "CHANNEL_ERROR";
+      return Presencia.entrar();
+    }).then(function (ok) {
+      paso16("suscripción fallida no entra (false)", ok === false);
+      paso16("suscripción fallida no queda activo", Presencia.activo() === false);
+
+      Nube.disponible = function () { return false; };
+      return Presencia.entrar();
+    }).then(function (ok) {
+      paso16("sin Nube no entra (false)", ok === false);
+      cajaTexto(log16.join("\n"));
+    });
+  }
+
+  // ---- chat remoto por Broadcast (P3.6) ----
+  // Nube (capa de canal) mockeada; se ejercita enviar local + recibir
+  // remoto por el evento "chat", con validación y sanitización.
+  if (prueba === "presence_chat_flujo") {
+    var log17 = [];
+    function paso17(n, ok) { log17.push((ok ? "OK " : "FALLO ") + n); }
+
+    var canalCh = null;
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve({ id: "user-1", email: "ana@ejemplo.com" }); };
+    Nube.abrirCanalSala = function (salaId, opts) {
+      canalCh = { salaId: salaId, clave: opts && opts.clave, disponible: true, _h: null, _bc: {}, _roster: {} };
+      return canalCh;
+    };
+    Nube.alPresencia = function (c, h) { if (c) c._h = h; return c; };
+    Nube.alBroadcast = function (c, evento, h) { if (c) c._bc[evento] = h; return c; };
+    Nube.suscribir = function () { return Promise.resolve("SUBSCRIBED"); };
+    var emitidos = [];
+    Nube.emitir = function (c, ev, p) { emitidos.push({ ev: ev, p: p }); return Promise.resolve({ ok: true }); };
+    Nube.track = function (c, e) { if (c) c._roster[e.clientId] = [e]; return Promise.resolve({ ok: true }); };
+    Nube.untrack = function () { return Promise.resolve({ ok: true }); };
+    Nube.presentes = function (c) { return c ? c._roster : {}; };
+    Nube.cerrarCanal = function () { return Promise.resolve({ ok: true }); };
+
+    // espías de las burbujas (local y remota)
+    var dichoLocal = [], dichoRem = [];
+    var origSalaDecir = Sala.decir;
+    Sala.decir = function (t) { dichoLocal.push(t); return origSalaDecir(t); };
+    var origRemDecir = Remotos.decir;
+    Remotos.decir = function (id, t) { dichoRem.push({ id: id, t: t }); return origRemDecir(id, t); };
+
+    Remotos.limpiar();
+    var yo = Presencia.clientId();
+
+    Presencia.entrar().then(function (ok) {
+      var salaId = Presencia.estado().salaId;
+      paso17("entra y activa Presencia", ok === true);
+
+      // hay un remoto presente (alta por presence, no por chat)
+      canalCh._roster["otra"] = [{ clientId: "otra", nombre: "Ana2", aspecto: ASP_B, x: 3.5, y: 3.5, dir: 1, pose: "parado" }];
+      canalCh._h.sync();
+      paso17("remoto presente para chatear", !!Remotos.obtener("otra"));
+
+      // 1) enviar local: burbuja YA + broadcast "chat"; sin duplicar
+      var chats0 = emitidos.filter(function (e) { return e.ev === "chat"; }).length;
+      Presencia.enviarChat("hola mundo");
+      paso17("mensaje local muestra la burbuja una vez", dichoLocal.length === 1 && dichoLocal[0] === "hola mundo");
+      var chats1 = emitidos.filter(function (e) { return e.ev === "chat"; });
+      paso17("se emite un broadcast 'chat' con mi clientId", chats1.length === chats0 + 1 && chats1[chats1.length - 1].p.clientId === yo);
+
+      // 2) broadcast propio se ignora al recibir (no crea burbuja remota)
+      var remAntes = dichoRem.length;
+      canalCh._bc.chat({ clientId: yo, salaId: salaId, texto: "eco propio" });
+      paso17("broadcast propio se ignora", dichoRem.length === remAntes);
+
+      // 3) mensaje remoto correcto → burbuja sobre el remoto correcto
+      canalCh._bc.chat({ clientId: "otra", salaId: salaId, texto: "hey!" });
+      paso17("mensaje remoto aparece sobre el remoto correcto",
+        Remotos.obtener("otra").frase === "hey!" && dichoRem[dichoRem.length - 1].id === "otra");
+
+      // 4) sin clientId → ignorado
+      var r4 = dichoRem.length;
+      canalCh._bc.chat({ salaId: salaId, texto: "sin id" });
+      paso17("mensaje sin clientId se ignora", dichoRem.length === r4);
+
+      // 5) otra sala → ignorado
+      var r5 = dichoRem.length;
+      canalCh._bc.chat({ clientId: "otra", salaId: "user-9:3", texto: "otra sala" });
+      paso17("mensaje de otra sala se ignora", dichoRem.length === r5);
+
+      // 6) texto vacío → ignorado
+      var r6 = dichoRem.length;
+      canalCh._bc.chat({ clientId: "otra", salaId: salaId, texto: "   " });
+      paso17("texto vacío se ignora", dichoRem.length === r6);
+
+      // 7) clientId sin actor presente → ignorado
+      var r7 = dichoRem.length;
+      canalCh._bc.chat({ clientId: "fantasma", salaId: salaId, texto: "hola" });
+      paso17("clientId sin actor se ignora", dichoRem.length === r7);
+
+      // 8) texto largo → recortado a 120
+      canalCh._bc.chat({ clientId: "otra", salaId: salaId, texto: new Array(300).join("a") });
+      paso17("texto largo se recorta a 120", Remotos.obtener("otra").frase.length === 120);
+
+      // 9) HTML no se interpreta (texto plano literal)
+      canalCh._bc.chat({ clientId: "otra", salaId: salaId, texto: "<b>hola</b>" });
+      paso17("HTML se trata como texto plano", Remotos.obtener("otra").frase === "<b>hola</b>");
+
+      // 10) sin canal/sesión: enviar local sigue funcionando, sin romper
+      return Presencia.salir().then(function () {
+        var antes = dichoLocal.length;
+        var ok10 = Presencia.enviarChat("hola local");
+        paso17("sin canal, el chat local sigue (burbuja + true)", ok10 === true && dichoLocal.length === antes + 1);
+        // restaurar espías
+        Sala.decir = origSalaDecir;
+        Remotos.decir = origRemDecir;
+        cajaTexto(log17.join("\n"));
+      });
+    });
+  }
+
+  // ---- visitar salas ajenas (modo visitante, P3.7) ----
+  // Nube mockeada (canal + lectura de sala). Valida entrar/salir de
+  // una sala ajena, el canal Presence con ownerUserId, la limpieza de
+  // remotos y los bloqueos de edición (decorar/catálogo/colocar).
+  if (prueba === "visita_flujo") {
+    var log18 = [];
+    function paso18(n, ok) { log18.push((ok ? "OK " : "FALLO ") + n); }
+    function tick18() { return new Promise(function (r) { setTimeout(r, 60); }); }
+
+    var canalV = null;
+    Nube.disponible = function () { return true; };
+    Nube.usuario = function () { return Promise.resolve({ id: "user-1", email: "yo@ejemplo.com" }); };
+    Nube.abrirCanalSala = function (salaId, opts) {
+      canalV = { salaId: salaId, clave: opts && opts.clave, disponible: true, _h: null, _bc: {}, _roster: {} };
+      return canalV;
+    };
+    Nube.alPresencia = function (c, h) { if (c) c._h = h; return c; };
+    Nube.alBroadcast = function (c, ev, h) { if (c) c._bc[ev] = h; return c; };
+    Nube.suscribir = function () { return Promise.resolve("SUBSCRIBED"); };
+    Nube.emitir = function () { return Promise.resolve({ ok: true }); };
+    Nube.track = function (c, e) { if (c) c._roster[e.clientId] = [e]; return Promise.resolve({ ok: true }); };
+    Nube.untrack = function () { return Promise.resolve({ ok: true }); };
+    Nube.presentes = function (c) { return c ? c._roster : {}; };
+    Nube.cerrarCanal = function () { return Promise.resolve({ ok: true }); };
+    Nube.leerSala = function (owner, idx) {
+      return Promise.resolve({
+        user_id: owner, indice: idx, nombre: "Sala de Otro",
+        ancho: 8, fondo: 8, color_suelo: "gris", color_pared: "crema",
+        desbloqueada: true, precio: 0, tipo: null, furnis: []
+      });
+    };
+
+    Remotos.limpiar();
+    Presencia.iniciar();   // engancha Sala.alCargar + entra en la sala propia
+    var panelEl = document.getElementById("panel");
+
+    tick18().then(function () {
+      paso18("entra en la sala propia (activo)", Presencia.activo() === true);
+      paso18("no es solo lectura en la propia", Visita.soloLectura() === false);
+      paso18("canal de mi sala (userId:indice)", Presencia.estado().salaId === "user-1:0");
+
+      return Visita.entrar("owner-2", 0);
+    }).then(function (ok) {
+      paso18("entra en sala ajena (true)", ok === true);
+      paso18("modo solo lectura activo", Visita.soloLectura() === true);
+      paso18("nombre de la sala visitada", Visita.nombreVisita() === "Sala de Otro");
+      return tick18();   // deja que Presencia reconecte (alCargar → salir/entrar)
+    }).then(function () {
+      paso18("canal Presence usa el ownerUserId", Presencia.estado().salaId === "owner-2:0");
+      paso18("sigue activo tras cambiar de sala", Presencia.activo() === true);
+      paso18("remotos limpios tras la transición", Remotos.cuenta() === 0);
+
+      // bloqueos de edición (centralizados en Visita.soloLectura)
+      UI.ponerModo("decorar");
+      paso18("decorar bloqueado (queda en pasear)", Sala.modo() === "pasear");
+      UI.abrirPanel("catalogo");
+      paso18("catálogo bloqueado (panel no se abre)", panelEl.classList.contains("oculto"));
+      UI.empezarColocacion("sofa_rojo", "catalogo");
+      paso18("colocar bloqueado (sin fantasma)", Sala.hayFantasma() === false);
+
+      return Visita.salir();
+    }).then(function () {
+      paso18("vuelve a la propia (editable)", Visita.soloLectura() === false);
+      return tick18();
+    }).then(function () {
+      paso18("canal Presence vuelve a mi sala", Presencia.estado().salaId === "user-1:0");
+      paso18("remotos limpios al volver", Remotos.cuenta() === 0);
+      UI.ponerModo("decorar");
+      paso18("en la propia sí se decora", Sala.modo() === "decorar");
+      UI.ponerModo("pasear");
+      Presencia.salir();
+      cajaTexto(log18.join("\n"));
     });
   }
   }  // fin de arrancarJuego

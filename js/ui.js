@@ -38,12 +38,22 @@ var UI = (function () {
 
   // ---------------- HUD ----------------
 
+  // ¿la sala cargada es editable? (P3.7) FUENTE ÚNICA: `Visita`.
+  // Todo lo que modifica la sala consulta esto en vez de repetir
+  // comprobaciones de "soy visitante".
+  function editable() {
+    return !(window.Visita && Visita.soloLectura());
+  }
+
   function refrescarHud() {
     elCreditos.textContent = Juego.creditos();
-    elNombreSala.textContent = Juego.salaActual().nombre;
+    var nom = (window.Visita && Visita.soloLectura())
+      ? Visita.nombreVisita() : Juego.salaActual().nombre;
+    elNombreSala.textContent = nom;
   }
 
   function ponerModo(m) {
+    if (m === "decorar" && !editable()) m = "pasear";   // de visita no se decora
     Sala.modo(m);
     pintarBotonModo(m);
     if (m === "pasear") {
@@ -56,6 +66,12 @@ var UI = (function () {
   // ---------------- panel lateral ----------------
 
   function abrirPanel(nombre, sub) {
+    // de visita, los paneles de edición (catálogo/inventario) quedan
+    // bloqueados: colocan/compran muebles en la sala.
+    if (!editable() && (nombre === "catalogo" || nombre === "inventario")) {
+      avisar("Estás de visita: no puedes decorar esta sala");
+      return;
+    }
     if (nombre !== "salas" && nombre !== "mascotas" && nombre !== "avatar" &&
         nombre !== "tareas") {
       ponerModoSinCerrar("decorar");
@@ -75,6 +91,7 @@ var UI = (function () {
   }
 
   function ponerModoSinCerrar(m) {
+    if (m === "decorar" && !editable()) m = "pasear";
     Sala.modo(m);
     pintarBotonModo(m);
   }
@@ -243,6 +260,29 @@ var UI = (function () {
     elPanelPestanas.innerHTML = "";
     elPanelContenido.innerHTML = "";
 
+    // de visita: solo banner + volver (no se editan salas ajenas).
+    // El nombre ajeno se pinta con textContent (nunca innerHTML).
+    if (window.Visita && Visita.soloLectura()) {
+      elPanelTitulo.textContent = "🚪 De visita";
+      var info = document.createElement("div");
+      info.className = "sala-item actual";
+      var nom = document.createElement("div");
+      nom.className = "nombre";
+      nom.textContent = "👋 Visitando: " + (Visita.nombreVisita() || "sala ajena");
+      var det = document.createElement("div");
+      det.className = "detalle";
+      det.textContent = "Solo lectura: puedes pasear, mirar y chatear.";
+      info.appendChild(nom);
+      info.appendChild(det);
+      elPanelContenido.appendChild(info);
+      var bVolver = document.createElement("button");
+      bVolver.className = "mini dorado";
+      bVolver.textContent = "← Volver a mis salas";
+      bVolver.addEventListener("click", function () { Visita.salir(); });
+      elPanelContenido.appendChild(bVolver);
+      return;
+    }
+
     Juego.salas().forEach(function (s, i) {
       var div = document.createElement("div");
       div.className = "sala-item" + (i === Juego.indiceSala() ? " actual" : "");
@@ -319,6 +359,44 @@ var UI = (function () {
       });
     });
     elPanelContenido.appendChild(bReset);
+
+    pintarVisitasDev();
+  }
+
+  // Lista provisional (dev) para visitar salas de otros jugadores.
+  // Más adelante será un directorio en condiciones. Los nombres ajenos
+  // se pintan con textContent (sin HTML). Solo con sesión de nube.
+  function pintarVisitasDev() {
+    if (!(window.Visita && window.Nube && Nube.disponible && Nube.disponible())) return;
+    var h = document.createElement("h3");
+    h.textContent = "Visitar sala de otro jugador (dev)";
+    elPanelContenido.appendChild(h);
+    var cont = document.createElement("div");
+    cont.textContent = "Cargando…";
+    elPanelContenido.appendChild(cont);
+    // pedir sesión ANTES de listar: sin sesión, `salas` da 401 (RLS
+    // solo permite leer a usuarios autenticados). Así no hay ruido.
+    Nube.usuario().then(function (u) {
+      if (!u || !u.id) { cont.textContent = "Inicia sesión (☁️) para visitar salas."; return; }
+      return Nube.listarSalas(200).then(function (lista) {
+        var salas = (lista || []).filter(function (s) {
+          return s.user_id !== u.id && s.desbloqueada;
+        });
+        cont.innerHTML = "";
+        if (!salas.length) { cont.textContent = "No hay salas ajenas visitables todavía."; return; }
+        salas.forEach(function (s) {
+          var b = document.createElement("button");
+          b.className = "mini";
+          b.textContent = "👋 " + s.nombre + " · " + String(s.user_id).slice(0, 8);
+          b.addEventListener("click", function () {
+            Visita.entrar(s.user_id, s.indice).then(function (ok) {
+              if (!ok) avisar("No se pudo cargar esa sala", "error");
+            });
+          });
+          cont.appendChild(b);
+        });
+      });
+    });
   }
 
   // ---------------- panel del avatar ----------------
@@ -762,6 +840,7 @@ var UI = (function () {
   }
 
   function empezarColocacion(id, origen, uid) {
+    if (!editable()) return;   // de visita no se coloca nada
     Sala.iniciarFantasma(id, 0, { origen: origen, uid: uid });
     mostrarColocacion();
   }
@@ -777,6 +856,8 @@ var UI = (function () {
   }
 
   function alColocar(info) {
+    // salvaguarda final: de visita nunca se modifica la sala.
+    if (!editable()) { Sala.cancelarFantasma(); ocultarColocacion(); return; }
     var salaObj = Juego.salaActual();
 
     if (info.origen === "catalogo") {
@@ -848,6 +929,7 @@ var UI = (function () {
   }
 
   function accionRotar(f) {
+    if (!editable()) return;
     if (!f || f.pared || esFijo(f)) return;
     var def = Furnis.get(f.id);
     var nuevo = ((f.rot || 0) + 1) % def.rotaciones;
@@ -859,6 +941,7 @@ var UI = (function () {
   }
 
   function accionMover(f) {
+    if (!editable()) return;
     if (esFijo(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     movimiento = quitarDeSala(f.uid);
@@ -885,6 +968,7 @@ var UI = (function () {
   }
 
   function accionGuardar(f) {
+    if (!editable()) return;
     if (esFijo(f) || hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
@@ -896,6 +980,7 @@ var UI = (function () {
   }
 
   function accionVender(f) {
+    if (!editable()) return;
     if (esFijo(f) || hogarHabitado(f)) return;
     Sala.levantarSiSentadoEn(f.uid);
     var inst = quitarDeSala(f.uid);
@@ -1062,9 +1147,11 @@ var UI = (function () {
       alMascota: abrirPanelMascota,
       alNpc: abrirChat,
       alOrdenador: function () {
+        if (!editable()) { avisar("Estás de visita: no puedes usar esto aquí"); return; }
         if (window.Minijuegos) Minijuegos.abrir();
       },
       alCasino: function (juego) {
+        if (!editable()) { avisar("Estás de visita: no puedes jugar aquí"); return; }
         if (window.Casino) Casino.abrir(juego);
       }
     });
@@ -1103,6 +1190,22 @@ var UI = (function () {
         estaAbierto: function () { return chatNpc !== null; },
         cerrar: cerrarChat,
         esParte: function (n) { return elPanelChat.contains(n); }
+      });
+    }
+
+    // al entrar/salir de una visita: forzar pasear, cerrar los paneles
+    // de edición y refrescar HUD/panel. Centralizado (no disperso).
+    if (window.Visita) {
+      Visita.alCambiar(function (soloLectura) {
+        if (soloLectura) {
+          ponerModoSinCerrar("pasear");
+          if (panelAbierto === "catalogo" || panelAbierto === "inventario") cerrarPanel();
+          ocultarMenuFurni();
+        } else {
+          pintarBotonModo(Sala.modo());
+        }
+        refrescarHud();
+        if (panelAbierto === "salas") pintarSalas();
       });
     }
 
